@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# ข้อมูลที่ดาวน์โหลดจาก Yahoo Finance -- สร้างใหม่ได้ด้วย python A2/download_data.py
+A2/data/

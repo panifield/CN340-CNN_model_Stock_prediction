@@ -1,0 +1,6 @@
+method,desc,acc_KBANK_sel,n_KBANK_sel,p_KBANK_sel,acc_ADVANC_sel,n_ADVANC_sel,p_ADVANC_sel,acc_ALL_sel,n_ALL_sel,p_ALL_sel,acc_KBANK_hold,n_KBANK_hold,p_KBANK_hold,acc_ADVANC_hold,n_ADVANC_hold,p_ADVANC_hold,acc_ALL_hold,n_ALL_hold,p_ALL_hold
+cnn_ann,Spectrogram -> CNN + feature ราคา ณ 16:00 -> ANN (โมเดลหลัก),0.4125,80,0.9535,0.4875,80,0.6312,0.4500,160,0.9106,0.6562,32,0.0551,0.4688,32,0.7017,0.5625,64,0.1909
+cnn_only,Spectrogram -> CNN -> ANN (ไม่มี feature ราคา ณ 16:00),0.4750,80,0.7118,0.5500,80,0.2170,0.5125,160,0.4063,0.5625,32,0.2983,0.4375,32,0.8115,0.5000,64,0.5497
+B_now_parity,ทายตามคู่/คี่ของราคา ณ 16:00,0.5500,80,0.2170,0.4875,80,0.6312,0.5188,160,0.3464,0.5000,32,0.5700,0.4688,32,0.7017,0.4844,64,0.6460
+B_logreg,Logistic regression บน feature ราคา ณ 16:00,0.5250,80,0.3688,0.4250,80,0.9272,0.4750,160,0.7616,0.4688,32,0.7017,0.4375,32,0.8115,0.4531,64,0.8091
+B_majority,ทายคลาสที่พบบ่อยใน train,0.4375,80,0.8907,0.5500,80,0.2170,0.4938,160,0.5937,0.4375,32,0.8115,0.4375,32,0.8115,0.4375,64,0.8698
