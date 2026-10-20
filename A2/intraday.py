@@ -20,6 +20,8 @@ DATA_DIR = A2_DIR / "data"
 STOCKS = ["KBANK", "ADVANC"]
 START_DATE = "2025-09-07"          # 7 ก.ย. 2568
 CUTOFF_BAR = "15:00"               # แท่งสุดท้ายที่ใช้ได้ ณ 16:00
+# เวลาทำนาย -> แท่งสุดท้ายที่ใช้ได้ (16:30 = ใช้แท่ง 16:00-16:30 ก่อนช่วง ATC)
+CUTOFFS = {"16:00": "15:00", "16:30": "16:00"}
 N_BARS = 36                        # ~6 วันทำการ
 NPERSEG, NOVERLAP = 8, 6
 CHANNELS = ["ret", "range", "vol"]
@@ -75,7 +77,7 @@ def stft_logpower(x):
     return np.log1p(np.abs(z) ** 2 * 1e5)
 
 
-def build_dataset(stock, start=START_DATE, end=None, h=None, d=None):
+def build_dataset(stock, start=START_DATE, end=None, h=None, d=None, cutoff_bar=CUTOFF_BAR):
     """คืน X (n, C, F, T), E (n, n_extra), y (n,), dates, p16 (ราคา ณ 16:00)"""
     h = load_hourly(stock) if h is None else h
     d = load_daily(stock) if d is None else d
@@ -85,8 +87,8 @@ def build_dataset(stock, start=START_DATE, end=None, h=None, d=None):
     for _, row in d[d["Date"] >= start].iterrows():
         if end is not None and row["Date"] >= pd.Timestamp(end):
             break
-        day = h[(h["day"] == row["Date"]) & (h["hm"] <= CUTOFF_BAR)]
-        if day.empty or day["hm"].iloc[-1] != CUTOFF_BAR or pd.isna(prev_parity.get(row["Date"])):
+        day = h[(h["day"] == row["Date"]) & (h["hm"] <= cutoff_bar)]
+        if day.empty or day["hm"].iloc[-1] != cutoff_bar or pd.isna(prev_parity.get(row["Date"])):
             continue  # ไม่มีแท่ง 15:00 (ข้อมูลขาด) -> ข้าม
         i = day.index[-1]
         if i + 1 < N_BARS:

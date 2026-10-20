@@ -3,7 +3,7 @@ Task A2: ทำนายราคาปิดคู่/คี่ของวั�
          Spectrogram (แท่งชั่วโมง) -> CNN + feature ราคา ณ 16:00 -> ANN
 
 ประเมินแบบเดียวกับ Task A: walk-forward 4 fold x 20 วัน + holdout 32 วันสุดท้าย, ensemble 3 seed
-โมเดลหลักกำหนดไว้ก่อนดูผล: cnn_ann
+โมเดลหลัก: cnn_ann_skip_mlp (เดิมกำหนดไว้ cnn_ann แต่แพ้กฎง่าย ๆ จึงแก้โครงสร้างหลังเห็นผลรอบแรก)
 
 Usage:
     python A2/main.py                    # ข้อมูลตั้งแต่ 7 ก.ย. 2568 (4 fold + holdout)
@@ -11,7 +11,8 @@ Usage:
                                          # retrain ทุก 20 วัน ทดสอบ ต.ค. 2567 - ปัจจุบัน
 """
 import argparse
-from concurrent.futures import ProcessPoolExecutor
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import json
 import sys
 from pathlib import Path
@@ -27,17 +28,19 @@ from sklearn.linear_model import LogisticRegression
 A2_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(A2_DIR))
 sys.path.insert(0, str(A2_DIR.parent / "A"))  # ใช้โมเดล/การเทรนชุดเดียวกับ Task A
-from intraday import CHANNELS, EXTRA_NAMES, N_BARS, START_DATE, STOCKS, build_dataset, tick_size  # noqa: E402
+from intraday import (CHANNELS, CUTOFFS, EXTRA_NAMES, N_BARS, START_DATE, STOCKS,  # noqa: E402
+                      build_dataset, tick_size)
 from src.train import DEVICE, predict_proba, train_one  # noqa: E402
 
 OUT = A2_DIR / "outputs"
 SEEDS = (0, 1, 2)
 N_HOLDOUT, N_FOLDS, FOLD_SIZE = 32, 4, 20
-MAIN_MODEL = "cnn_ann"
+MAIN_MODEL = "cnn_ann_skip_mlp"
+FIRST_MODEL = "cnn_ann"  # โมเดลที่กำหนดไว้ก่อนดูผลครั้งแรก
 METHODS = {
-    "cnn_ann": "Spectrogram -> CNN + feature ราคา ณ 16:00 -> ANN (โมเดลหลัก)",
+    "cnn_ann": "Spectrogram -> CNN + feature ราคา ณ เวลาที่ทาย -> ANN (โมเดลเดิม)",
     "cnn_ann_skip": "cnn_ann + ย่อ CNN เหลือ 8 ค่า + ทางลัด linear จาก feature ราคา ณ 16:00 (รอบแก้)",
-    "cnn_ann_skip_mlp": "cnn_ann + ย่อ CNN เหลือ 8 ค่า + ทางลัด MLP เล็ก (รอบแก้)",
+    "cnn_ann_skip_mlp": "cnn_ann + ย่อ CNN เหลือ 8 ค่า + ทางลัด MLP เล็ก (โมเดลหลัก)",
     "cnn_only": "Spectrogram -> CNN -> ANN (ไม่มี feature ราคา ณ 16:00)",
     "B_now_parity": "ทายตามคู่/คี่ของราคา ณ 16:00",
     "B_logreg": "Logistic regression บน feature ราคา ณ 16:00",
@@ -101,19 +104,24 @@ def _job(method, stock, D, kind, a, b):
                  p_odd=float(pi), price_16=float(D["p16"][i])) for i, pi in zip(te, p)]
 
 
-def evaluate(extended=False, workers=4, only=None):
+def evaluate(extended=False, workers=4, only=None, cutoff="16:00"):
     data, jobs = {}, []
     for stock in STOCKS:
-        X, E, y, d, p16 = build_dataset(stock, start=EXT_DATA_FROM if extended else START_DATE)
+        X, E, y, d, p16 = build_dataset(stock, start=EXT_DATA_FROM if extended else START_DATE,
+                                        cutoff_bar=CUTOFFS[cutoff])
         data[stock] = D = dict(X=X, E=E, y=y, d=pd.to_datetime(d), p16=p16)
         print(f"{stock}: {len(y)} วัน ({D['d'][0].date()} - {D['d'][-1].date()}), "
               f"spectrogram {X.shape[1:]}, extras {E.shape[1]}")
         for kind, a, b in (periods_extended if extended else periods)(D["d"]):
             jobs += [(m, stock, D, kind, a, b) for m in (only or METHODS)]
     rows = []
+    t0 = time.time()
     with ProcessPoolExecutor(max_workers=workers) as ex:
-        for r in ex.map(_job, *zip(*jobs)):
-            rows += r
+        futs = [ex.submit(_job, *j) for j in jobs]
+        for k, f in enumerate(as_completed(futs), 1):
+            rows += f.result()
+            if k % max(1, len(jobs) // 20) == 0 or k == len(jobs):
+                print(f"  {k}/{len(jobs)} งาน ({time.time() - t0:.0f}s)", flush=True)
     return pd.DataFrame(rows), data
 
 
@@ -169,7 +177,7 @@ def plot_comparison(summary, path):
     plt.close(fig)
 
 
-def report_extended(pred, out):
+def report_extended(pred, out, cutoff="16:00"):
     """ผลของโหมด extended: รวมทั้งช่วง + แยกช่วงย่อย"""
     pred = pred.assign(tick_half=pred.price_16.map(tick_size) < 1,
                        task_period=pred.date >= pd.Timestamp(START_DATE))
@@ -177,10 +185,12 @@ def report_extended(pred, out):
                ("เฉพาะช่วงของโจทย์ (ตั้งแต่ 7 ก.ย. 68)", pred[pred.task_period]),
                ("ราคา < 200 (ช่วงราคา 0.5 บาท)", pred[pred.tick_half]),
                ("ราคา >= 200 (ช่วงราคา 1 บาท)", pred[~pred.tick_half])]
-    lines = ["# A2 (extended): ใช้ข้อมูลรายชั่วโมงทั้งหมด ทำนาย ณ 16:00", "",
+    lines = [f"# A2 (extended): ใช้ข้อมูลรายชั่วโมงทั้งหมด ทำนาย ณ {cutoff}", "",
              f"- ข้อมูล: {EXT_DATA_FROM} - ล่าสุด; ทดสอบตั้งแต่ {EXT_EVAL_FROM}; retrain ทุก {EXT_STEP} วัน "
              "(เทรนด้วยข้อมูลก่อนช่วงทดสอบทั้งหมด, 15% ท้ายเป็น val)",
-             f"- โมเดลหลัก (กำหนดก่อนดูผล): `{MAIN_MODEL}`", ""]
+             f"- โมเดลหลัก: `{MAIN_MODEL}` -- เดิมกำหนดไว้ `{FIRST_MODEL}` แต่แพ้กฎง่าย ๆ "
+             "จึงแก้โครงสร้าง (ย่อ CNN + ทางลัด) หลังเห็นผลรอบแรก",
+             "- `B_now_parity` = กฎทายตามคู่/คี่ของราคา ณ เวลาที่ทาย (ไม่มีการเทรน)", ""]
     for title, g0 in subsets:
         lines += [f"## {title}", "", "| method | KBANK | ADVANC | รวม | n | p (vs 50%) |", "|---|---|---|---|---|---|"]
         for m in [m for m in METHODS if m in set(g0.method)]:
@@ -189,10 +199,13 @@ def report_extended(pred, out):
             per = {s: g[g.stock == s].correct.mean() for s in STOCKS}
             lines.append(f"| `{m}` | {per['KBANK']:.3f} | {per['ADVANC']:.3f} | **{acc:.3f}** | {n} | {pv:.3g} |")
         piv = g0.pivot_table(index=["stock", "date"], columns="method", values="correct")
-        diff = piv[MAIN_MODEL] - piv["B_now_parity"]
-        w, l_ = int((diff > 0).sum()), int((diff < 0).sum())
-        pv = binomtest(w, w + l_, 0.5, alternative="greater").pvalue if w + l_ else 1.0
-        lines += ["", f"`{MAIN_MODEL}` vs `B_now_parity`: ถูกกว่า {w} วัน / ผิดกว่า {l_} วัน (sign test p = {pv:.3g})", ""]
+        lines.append("")
+        for cm in [c for c in piv.columns if c.startswith("cnn_ann")]:  # เทียบทุกโมเดล CNN+ANN ที่มีกับกฎ
+            diff = piv[cm] - piv["B_now_parity"]
+            w, l_ = int((diff > 0).sum()), int((diff < 0).sum())
+            pv = binomtest(w, w + l_, 0.5, alternative="greater").pvalue if w + l_ else 1.0
+            lines.append(f"- `{cm}` vs `B_now_parity`: ถูกกว่า {w} วัน / ผิดกว่า {l_} วัน (sign test p = {pv:.3g})")
+        lines.append("")
     (out / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
 
@@ -202,19 +215,20 @@ def main():
     ap.add_argument("--extended", action="store_true", help="ใช้ข้อมูลรายชั่วโมงทั้งหมด (ต.ค. 2566 -)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--only", help="รันเฉพาะบาง method (คั่นด้วย comma) แล้วรวมกับผลเดิม")
+    ap.add_argument("--cutoff", choices=list(CUTOFFS), default="16:00", help="เวลาที่ทำนาย")
     args = ap.parse_args()
     only = args.only.split(",") if args.only else None
     print(f"device: {DEVICE}")
     if args.extended:
-        out = OUT / "extended"
+        out = OUT / ("extended" if args.cutoff == "16:00" else f"extended_{args.cutoff.replace(':', '')}")
         out.mkdir(parents=True, exist_ok=True)
-        pred, _ = evaluate(extended=True, workers=args.workers, only=only)
+        pred, _ = evaluate(extended=True, workers=args.workers, only=only, cutoff=args.cutoff)
         pred["correct"] = ((pred.p_odd > 0.5).astype(int) == pred.y).astype(int)
         if only and (out / "predictions.csv").exists():
             old = pd.read_csv(out / "predictions.csv", parse_dates=["date"])
             pred = pd.concat([old[~old.method.isin(only)], pred], ignore_index=True)
         pred.to_csv(out / "predictions.csv", index=False)
-        report_extended(pred, out)
+        report_extended(pred, out, args.cutoff)
         return
 
     OUT.mkdir(parents=True, exist_ok=True)

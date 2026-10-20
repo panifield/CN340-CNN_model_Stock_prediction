@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from intraday import (START_DATE, STOCKS, build_dataset, load_daily, load_hourly,  # noqa: E402
+from intraday import (CUTOFFS, START_DATE, STOCKS, build_dataset, load_daily, load_hourly,  # noqa: E402
                       load_raw_daily, load_yahoo_daily)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -45,28 +45,36 @@ def perturb(h, d, mask_h, mask_d, rng):
     return recompute_features(h), d
 
 
-def leak_test(stock, n_probe=12):
+def leak_test(stock, when, n_probe=12):
+    """when = เวลาที่ทำนาย ("16:00" หรือ "16:30")"""
+    bar = CUTOFFS[when]
+    hh, mm = map(int, when.split(":"))
+    last_bar_h = int(bar[:2])
     h, d = load_hourly(stock), load_daily(stock)
-    X0, E0, y0, dates, _ = build_dataset(stock, h=h, d=d)
+    X0, E0, y0, dates, _ = build_dataset(stock, h=h, d=d, cutoff_bar=bar)
     rng = np.random.default_rng(0)
     leaks = label_changes = sens = 0
     for k in rng.choice(len(X0), n_probe, replace=False):
         t = dates[k]
         # ข้อมูลหลัง 16:00 ของวัน t (แท่ง 16:00 + วันถัดไป) และราคาปิดวัน t เป็นต้นไป
-        mask_h = (h["Datetime"] >= t + pd.Timedelta(hours=16))
+        mask_h = (h["Datetime"] > t + pd.Timedelta(hours=last_bar_h))  # ทุกแท่งหลังแท่งสุดท้ายที่ใช้ได้
         mask_d = d["Date"] >= t
         h1, d1 = perturb(h, d, mask_h, mask_d, rng)
-        X1, E1, y1, dates1, _ = build_dataset(stock, start=t, end=t + pd.Timedelta(days=1), h=h1, d=d1)
+        X1, E1, y1, dates1, _ = build_dataset(stock, start=t, end=t + pd.Timedelta(days=1), h=h1, d=d1,
+                                              cutoff_bar=bar)
         leaks += not (np.array_equal(X0[k], X1[0]) and np.array_equal(E0[k], E1[0]))
         label_changes += y0[k] != y1[0]
         # ตัวควบคุม: แก้แท่ง 15:00 ของวัน t (ข้อมูลที่ใช้ได้) -> input ต้องเปลี่ยน
-        mask15 = h["Datetime"] == t + pd.Timedelta(hours=15)
-        h2, d2 = perturb(h, d, mask15, d["Date"] < d["Date"].min(), rng)
-        X2, E2, *_ = build_dataset(stock, start=t, end=t + pd.Timedelta(days=1), h=h2, d=d2)
+        mask_last = h["Datetime"] == t + pd.Timedelta(hours=last_bar_h)
+        h2, d2 = perturb(h, d, mask_last, d["Date"] < d["Date"].min(), rng)
+        X2, E2, *_ = build_dataset(stock, start=t, end=t + pd.Timedelta(days=1), h=h2, d=d2, cutoff_bar=bar)
         sens += not (np.array_equal(X0[k], X2[0]) and np.array_equal(E0[k], E2[0]))
-    check("input ไม่เปลี่ยนเมื่อแก้ข้อมูลหลัง 16:00 / ราคาปิดวัน t", leaks == 0, f"{leaks}/{n_probe} เปลี่ยน")
-    check("(ตัวควบคุม) การแก้ราคาปิดวัน t ทำให้ label เปลี่ยน", label_changes > 0, f"{label_changes}/{n_probe}")
-    check("(ตัวควบคุม) แก้แท่ง 15:00-16:00 แล้ว input เปลี่ยน (test มีความไว)", sens == n_probe, f"{sens}/{n_probe}")
+    check(f"[{when}] input ไม่เปลี่ยนเมื่อแก้ข้อมูลหลัง {hh:02d}:{mm:02d} / ราคาปิดวัน t", leaks == 0,
+          f"{leaks}/{n_probe} เปลี่ยน")
+    check(f"[{when}] (ตัวควบคุม) การแก้ราคาปิดวัน t ทำให้ label เปลี่ยน", label_changes > 0,
+          f"{label_changes}/{n_probe}")
+    check(f"[{when}] (ตัวควบคุม) แก้แท่งสุดท้ายที่ใช้ได้ ({bar}) แล้ว input เปลี่ยน", sens == n_probe,
+          f"{sens}/{n_probe}")
 
 
 def daily_source_test(stock):
@@ -86,7 +94,8 @@ def main():
     for s in STOCKS:
         print(f"\n===== {s} =====")
         daily_source_test(s)
-        leak_test(s)
+        for when in CUTOFFS:
+            leak_test(s, when)
     print("\nสรุป:", "ผ่านทั้งหมด" if not failures else f"ไม่ผ่าน {len(failures)} ข้อ: {failures}")
     sys.exit(1 if failures else 0)
 

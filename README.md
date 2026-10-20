@@ -11,7 +11,9 @@
 | `A/` | ทำนายวัน t ด้วยข้อมูลถึงวัน t-1 (รายวัน) |
 | `A/experiments/` | เทียบ 34 วิธี, ยืนยันผลบนข้อมูล 9 ปี, ทดสอบ price clustering แบบ pre-registered |
 | `A/tests/` | ตรวจ data leakage และ sanity check |
-| `A2/` | ทำนายวัน t ตอน 16:00 (ก่อนตลาดปิด) ด้วยข้อมูลรายชั่วโมง |
+| `A2/` | ทำนายวัน t ตอน 16:00 หรือ 16:30 (ก่อนตลาดปิด) ด้วยข้อมูลรายชั่วโมง |
+| `A2/analysis/` | ยืนยันกฎคู่/คี่ช่วงท้ายตลาดแบบ pre-registered |
+| `A2/tests/` | ตรวจ data leakage (ทั้ง 16:00 และ 16:30) |
 
 ## วิธีรัน
 
@@ -24,7 +26,9 @@ python A/experiments/search.py        # เทียบหลายวิธี 
 
 python A2/download_data.py            # ดาวน์โหลดข้อมูลรายชั่วโมงจาก Yahoo Finance
 python A2/tests/check_leak.py         # ตรวจ data leakage (A2)
-python A2/main.py --extended          # เทรน/ประเมิน A2 แบบ walk-forward
+python A2/main.py --extended          # เทรน/ประเมิน A2 แบบ walk-forward (ทำนาย ณ 16:00)
+python A2/main.py --extended --cutoff 16:30   # ทำนาย ณ 16:30
+python A2/analysis/rules.py           # ยืนยันกฎบนข้อมูล ต.ค. 2566 - ก.ย. 2567
 ```
 
 ใช้ GPU อัตโนมัติถ้ามี (ตั้ง `TASKA_DEVICE=cpu` เพื่อบังคับใช้ CPU)
@@ -42,9 +46,21 @@ python A2/main.py --extended          # เทรน/ประเมิน A2 �
 | วิธี | ทั้งหมด | ราคา < 200 (ช่วงราคา 0.5 บาท) | ราคา ≥ 200 |
 |---|---|---|---|
 | ทายตามคู่/คี่ของราคา ณ 16:00 | **55.9%** (p=0.0001) | **62.6%** | 51.4% |
-| CNN + ANN (skip connection) | 53.5% (p=0.016) | 61.1% | 48.4% |
+| CNN + ANN (`cnn_ann_skip_mlp`, โมเดลหลัก) | 53.5% (p=0.016) | 61.1% | 48.4% |
 
 - ทายได้จริงเฉพาะเมื่อช่วงราคาเป็น 0.5 บาท (กลไกของตลาด) -- ราคา ≥ 200 บาทยังทายไม่ได้
 - spectrogram ไม่ได้เพิ่มข้อมูลเกินกว่าคู่/คี่ของราคา ณ 16:00
 
-รายละเอียด: `A/experiments/results/*/report.md`, `A/experiments/clustering/results.md`, `A2/outputs/extended/report.md`
+**A2 ณ 16:30 (ก่อนช่วง ATC, `--cutoff 16:30`):** CNN+ANN (skip MLP) 57.3% ทั้งหมด, KBANK 63.2%, ADVANC 51.4%
+(KBANK ทายเหมือนกฎเกือบทุกวัน; ADVANC ยังเท่าการเดา)
+
+**ยืนยันกฎแบบ pre-registered บนข้อมูล ต.ค. 2566 – ก.ย. 2567** (`A2/analysis/`):
+
+| กฎ | ข้อมูลยืนยัน | ผล |
+|---|---|---|
+| วันที่ช่วงราคา 0.5 บาท ณ 16:00 -> คู่/คี่เหมือนตอนนี้ | 66.4% (n=244) | ผ่าน |
+| KBANK ช่วงราคา 0.5 บาท ณ 16:30 -> คู่/คี่เหมือนตอนนี้ | 71.4% (n=234) | ผ่าน |
+| ADVANC ณ 16:30 -> คู่/คี่ตรงข้าม | 47.3% (n=224) | ไม่ผ่าน |
+
+รายละเอียด: `A/experiments/results/*/report.md`, `A/experiments/clustering/results.md`,
+`A2/outputs/extended/report.md`, `A2/outputs/extended_1630/report.md`, `A2/analysis/results.md`
