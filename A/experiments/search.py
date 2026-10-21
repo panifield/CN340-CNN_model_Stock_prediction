@@ -13,8 +13,10 @@ Usage:
     python A/experiments/search.py                       # ขั้นที่ 1 ทุก config ที่ยังไม่ได้รัน
     python A/experiments/search.py --only base,cwt_hybrid --force
     python A/experiments/search.py --replicate --only hybrid_extras,base,B_majority
+    python A/experiments/search.py --label x2 --only base,hybrid_extras   # label = round(close*2) % 2
 """
 import argparse
+import os
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -31,7 +33,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from src.config import CHANNELS, START_DATE, STOCKS  # noqa: E402
 
-RESULTS = Path(__file__).resolve().parent / "results"
+# label: "floor" = floor(close) % 2 (โจทย์หลัก), "x2" = round(close*2) % 2 (คู่/คี่ของจำนวน tick 0.5 บาท)
+# ส่งผ่าน env เพื่อให้ worker process เห็นค่าเดียวกัน
+LABEL = os.environ.get("TASKA_LABEL", "floor")
+RESULTS = Path(__file__).resolve().parent / ("results" if LABEL == "floor" else f"results_{LABEL}")
 MAIN_TAG = "2025-09_now"
 REPLICATE_YEARS = range(2016, 2025)
 SEEDS = (0, 1, 2)
@@ -89,11 +94,17 @@ CONFIGS = {
     # ===== รอบที่ 3: price clustering (ดู experiments/clustering/preregistration.md) =====
     "hybrid_round":       dict(batch=3, extras=True, rounds=True,
                                desc="hybrid + เลขท้ายราคาเมื่อวาน (price clustering)"),
+    # ===== รอบที่ 4: pretrain บนข้อมูลเก่า (2559-2566) -> fine-tune บนข้อมูลล่าสุด =====
+    "pretrain8y_ft":      dict(batch=4, method="cnn_pretrain_long", extras=True,
+                               desc="pretrain คู่/คี่ 2016-2023 แล้ว fine-tune ทั้งโมเดลด้วยข้อมูลล่าสุด"),
+    "pretrain8y_frozen":  dict(batch=4, method="cnn_pretrain_long", extras=True, freeze=True,
+                               desc="pretrain คู่/คี่ 2016-2023 แล้ว freeze CNN เทรนแค่ ANN"),
 }
 CONFIGS = {k: {**BASE, **v} for k, v in CONFIGS.items()}
 
 
 TRAIN10Y_TAG = "train10y"  # เทรนด้วยข้อมูลก่อน START_DATE ทั้งหมด แล้วทดสอบช่วงของโจทย์
+PRETRAIN_TAG = "pre2016_2023"  # ข้อมูล pretrain (จบก่อนช่วงทดสอบของ MAIN_TAG ~1.7 ปี -> ไม่มี leakage)
 
 
 def period_of(tag):
@@ -101,6 +112,8 @@ def period_of(tag):
         return START_DATE, None
     if tag == TRAIN10Y_TAG:
         return "2016-01-01", None
+    if tag == PRETRAIN_TAG:
+        return "2016-01-01", "2024-01-01"
     y = int(tag[:4])
     return f"{y}-09-07", f"{y + 1}-09-07"
 
@@ -118,6 +131,9 @@ def get_data(stock, cfg, tag):
     if key not in _cache:
         start, end = period_of(tag)
         df = load_stock(stock, start, end)
+        if LABEL == "x2":
+            df["parity"] = np.round(df["Close"] * 2).astype(int) % 2
+            df["parity_sig"] = 2.0 * df["parity"] - 1.0
         X, y, d = build_images(df, cfg["window"], cfg["channels"], cfg["transform"],
                                cfg["nperseg"], cfg["noverlap"])
         E = build_extras(df, cfg["window"])
@@ -142,7 +158,35 @@ def periods_for(tag):
 
 
 # ---------------------------------------------------------------- fit / predict
-def run_task(name, stocks, tag, kind, start, end):
+def train_kw(cfg):
+    """hyperparameter เพิ่มเติม (ใช้โดย followup/optuna_search.py) -- ไม่ระบุ = ค่า default เดิม"""
+    kw = {k: cfg[k] for k in ("lr", "weight_decay", "batch_size") if k in cfg}
+    mk = {k: cfg[k] for k in ("bottleneck", "skip") if cfg.get(k)}
+    return dict(kw, model_kwargs=mk or None)
+
+
+_pretrained = {}
+
+
+def pretrained_state(stock, cfg, seed):
+    """เทรนโมเดลคู่/คี่บนข้อมูล 2016-2023 ของหุ้นเดียวกัน (cache ต่อ process)"""
+    from src.train import train_one
+    key = (stock, seed, cfg["transform"], cfg["window"], tuple(cfg["channels"]), cfg["nperseg"], cfg["extras"])
+    if key not in _pretrained:
+        D = get_data(stock, cfg, PRETRAIN_TAG)
+        n_va = int(len(D["y"]) * 0.15)
+        X = D["X"]
+        mu, sd = X[:-n_va].mean(axis=(0, 2, 3), keepdims=True), X[:-n_va].std(axis=(0, 2, 3), keepdims=True) + 1e-6
+        Xn = ((X - mu) / sd).astype(np.float32)
+        E = D["E"] if cfg["extras"] else None
+        m = train_one(Xn[:-n_va], D["y"][:-n_va], Xn[-n_va:], D["y"][-n_va:], seed=seed,
+                      Etr=None if E is None else E[:-n_va], Eva=None if E is None else E[-n_va:],
+                      arch=cfg["arch"])[0]
+        _pretrained[key] = {k: v.detach().clone() for k, v in m.state_dict().items()}
+    return _pretrained[key]
+
+
+def run_task(name, stocks, tag, kind, start, end, cfg=None):
     import torch
     torch.set_num_threads(2)
     from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
@@ -150,7 +194,8 @@ def run_task(name, stocks, tag, kind, start, end):
     from sklearn.neural_network import MLPClassifier
     from src.train import predict_proba, train_one
 
-    cfg = CONFIGS[name]
+    cfg = cfg or CONFIGS[name]
+    seeds = cfg.get("seeds", SEEDS)
     datas = {s: get_data(s, cfg, tag) for s in stocks}
     tr, va = [], []
     for D in datas.values():
@@ -176,10 +221,20 @@ def run_task(name, stocks, tag, kind, start, end):
 
     models, clf = [], None
     if m == "cnn":
-        for s in SEEDS:
+        for s in seeds:
             models.append(train_one(norm(Xtr), ytr, norm(Xva), yva, seed=s,
                                     Etr=Etr if use_e else None, Eva=Eva if use_e else None,
-                                    arch=cfg["arch"], noise_std=cfg["noise"])[0])
+                                    arch=cfg["arch"], noise_std=cfg["noise"], **train_kw(cfg))[0])
+    elif m == "cnn_pretrain_long":
+        # เริ่มจาก CNN ที่ pretrain บนปี 2016-2023 (ANN เริ่มใหม่) แล้ว fine-tune ด้วย lr ต่ำลง 10 เท่า
+        # หรือ freeze CNN แล้วเทรนแค่ ANN
+        for s in seeds:
+            st = pretrained_state(stocks[0], cfg, s)
+            cnn_st = {k[4:]: v for k, v in st.items() if k.startswith("cnn.")}
+            frz = cfg.get("freeze", False)
+            models.append(train_one(norm(Xtr), ytr, norm(Xva), yva, seed=s, Etr=Etr, Eva=Eva,
+                                    arch=cfg["arch"], init_cnn=cnn_st, freeze_cnn=frz,
+                                    lr=1e-3 if frz else 1e-4)[0])
     elif m == "cnn_pretrain":
         thr = np.median(Atr)
         for s in SEEDS:
@@ -418,7 +473,13 @@ def main():
     ap.add_argument("--train10y", action="store_true", help="เทรนด้วยข้อมูล 10 ปี ทดสอบช่วงของโจทย์")
     ap.add_argument("--workers", type=int, default=12)
     ap.add_argument("--force", action="store_true", help="รันใหม่แม้มีผลอยู่แล้ว")
+    ap.add_argument("--label", choices=["floor", "x2"], default="floor",
+                    help="floor = floor(close) %% 2 (โจทย์หลัก), x2 = round(close*2) %% 2")
     args = ap.parse_args()
+    if args.label != LABEL:  # รันใหม่ทั้ง process ให้ worker เห็น label เดียวกัน
+        os.environ["TASKA_LABEL"] = args.label
+        import subprocess
+        sys.exit(subprocess.call([sys.executable] + sys.argv))
     names = args.only.split(",") if args.only else list(CONFIGS)
     # ensemble ต้องมีผลของสมาชิกก่อน
     needed = list(dict.fromkeys(names + [m for n in names for m in CONFIGS[n].get("members", [])]))

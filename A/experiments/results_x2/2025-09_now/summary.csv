@@ -1,0 +1,5 @@
+config,desc,batch,acc_KBANK_sel,n_KBANK_sel,p_KBANK_sel,acc_ADVANC_sel,n_ADVANC_sel,p_ADVANC_sel,acc_ALL_sel,n_ALL_sel,p_ALL_sel,acc_KBANK_hold,n_KBANK_hold,p_KBANK_hold,acc_ADVANC_hold,n_ADVANC_hold,p_ADVANC_hold,acc_ALL_hold,n_ALL_hold,p_ALL_hold
+B_majority,ทายคลาสที่พบบ่อยใน train,1,0.7625,80,0.0000,1.0000,80,0.0000,0.8812,160,0.0000,1.0000,32,0.0000,1.0000,32,0.0000,1.0000,64,0.0000
+base,"W30, STFT 10, 4 ch, CNN 2 ชั้น",1,0.7250,80,0.0000,1.0000,80,0.0000,0.8625,160,0.0000,0.8125,32,0.0003,1.0000,32,0.0000,0.9062,64,0.0000
+hybrid_extras,base + คู่/คี่เมื่อวานเข้า ANN ตรง,1,0.6625,80,0.0024,1.0000,80,0.0000,0.8313,160,0.0000,0.7500,32,0.0035,1.0000,32,0.0000,0.8750,64,0.0000
+B_persistence,ทายเหมือนเมื่อวาน,1,0.6500,80,0.0048,1.0000,80,0.0000,0.8250,160,0.0000,1.0000,32,0.0000,1.0000,32,0.0000,1.0000,64,0.0000

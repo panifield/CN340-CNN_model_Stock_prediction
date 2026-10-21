@@ -24,10 +24,12 @@ def predict_proba(model, X, E=None):
 
 
 def train_one(Xtr, ytr, Xva, yva, seed, Etr=None, Eva=None, arch="current",
-              noise_std=0.0, init_cnn=None, freeze_cnn=False, model_kwargs=None):
+              noise_std=0.0, init_cnn=None, freeze_cnn=False, model_kwargs=None,
+              lr=LR, weight_decay=WEIGHT_DECAY, batch_size=BATCH_SIZE):
     """noise_std > 0 : augmentation ใส่ Gaussian noise ให้ input ตอนเทรน
     init_cnn       : state_dict ของ CNN ที่ pretrain มาแล้ว (transfer learning)
-    freeze_cnn     : ไม่อัปเดต CNN เทรนแค่ ANN"""
+    freeze_cnn     : ไม่อัปเดต CNN เทรนแค่ ANN
+    lr, weight_decay, batch_size : ค่า default ตาม config (ปรับได้สำหรับ hyperparameter search)"""
     torch.manual_seed(seed)
     np.random.seed(seed)
     n_extra = 0 if Etr is None else Etr.shape[1]
@@ -38,7 +40,7 @@ def train_one(Xtr, ytr, Xva, yva, seed, Etr=None, Eva=None, arch="current",
         for prm in model.cnn.parameters():
             prm.requires_grad = False
     opt = torch.optim.Adam([prm for prm in model.parameters() if prm.requires_grad],
-                           lr=LR, weight_decay=WEIGHT_DECAY)
+                           lr=lr, weight_decay=weight_decay)
     loss_fn = nn.BCEWithLogitsLoss()
     Xtr_t, ytr_t, Etr_t = _t(Xtr), _t(ytr), _t(Etr)
     Xva_t, yva_t, Eva_t = _t(Xva), _t(yva), _t(Eva)
@@ -50,8 +52,8 @@ def train_one(Xtr, ytr, Xva, yva, seed, Etr=None, Eva=None, arch="current",
         if freeze_cnn:
             model.cnn.eval()  # BatchNorm ของ CNN ที่ freeze ต้องไม่อัปเดตสถิติ
         perm = torch.randperm(len(Xtr_t), device=DEVICE)
-        for i in range(0, len(perm), BATCH_SIZE):
-            idx = perm[i:i + BATCH_SIZE]
+        for i in range(0, len(perm), batch_size):
+            idx = perm[i:i + batch_size]
             if len(idx) < 2:  # BatchNorm ต้องการ batch >= 2
                 continue
             opt.zero_grad()

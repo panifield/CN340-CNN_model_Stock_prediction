@@ -1,0 +1,387 @@
+<title>KBANK–ADVANC Parity Study</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column; each slide is a numbered section (the order is the suggested slide order) */
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --fg: #1f2124; --muted: #5d6066; --rule: #dedcd6;
+  --accent: #2a78d6; --accent-2: #c9551f; --good: #1b7f4b; --bad: #b3261e; --chip: #eaf1fb;
+  --font-display: "Bai Jamjuree", "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --font-body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1d2024; --fg: #e8e7e3; --muted: #a3a6ab; --rule: #33363b;
+    --accent: #5b9ee8; --accent-2: #ec7a45; --good: #4cc08a; --bad: #f2827a; --chip: #1f2c3d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --fg: #e8e7e3; --muted: #a3a6ab; --rule: #33363b;
+  --accent: #5b9ee8; --accent-2: #ec7a45; --good: #4cc08a; --bad: #f2827a; --chip: #1f2c3d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+h2 { font-size: clamp(1.3rem, 2.6vw, 1.7rem); }
+h3 { font-size: 1.05rem; margin-top: 8px; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 1.05rem; margin-top: 12px; }
+.meta { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); letter-spacing: 0.02em; margin-top: 16px; }
+.verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 28px; }
+.verdict div { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.verdict b { display: block; font-family: var(--font-display); font-size: 1.05rem; }
+.verdict .num { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.verdict span { display: block; color: var(--muted); font-size: 0.9rem; }
+.verdict .num { margin: 4px 0 2px; color: var(--fg); font-size: 1.5rem; }
+nav.toc { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 16px; }
+nav.toc ol { margin: 8px 0 0; padding-left: 1.4em; columns: 2 280px; column-gap: 32px; font-size: 0.95rem; }
+nav.toc a { color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--accent); outline: none; }
+section.slide { margin-top: 56px; padding-top: 24px; border-top: 2px solid var(--fg); display: grid; gap: 14px; }
+.slide-no { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+.key { font-size: 1.08rem; font-weight: 600; background: var(--chip); border-radius: 8px; padding: 10px 14px; max-width: none; }
+figure { margin: 4px 0 0; background: #fff; border: 1px solid var(--rule); border-radius: 8px; padding: 8px; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { font-family: var(--font-mono); font-size: 0.75rem; color: #5d6066; margin-top: 6px; }
+ul { margin: 0; padding-left: 1.2em; max-width: 72ch; }
+li + li { margin-top: 4px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: var(--surface); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; letter-spacing: 0.02em; }
+td.n, th.n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pass { color: var(--good); font-weight: 600; } .fail { color: var(--bad); font-weight: 600; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.two > * { min-width: 0; }
+.note { color: var(--muted); font-size: 0.92rem; }
+pre.mermaid { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px; overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ทำนายราคาปิดหุ้นคู่/คี่ ด้วย Spectrogram + CNN + ANN</h1>
+    <p class="lede">สรุปทุกการทดลอง การแก้ไข และการวิเคราะห์ข้อมูลของ Task A (ทายจากข้อมูลถึงเมื่อวาน) และ Task A2 (ทายระหว่างวันตอน 16:00 / 16:30) สำหรับหุ้น KBANK และ ADVANC เรียงตามลำดับสไลด์ที่แนะนำ</p>
+    <p class="meta">CN340 · ข้อมูล ส.ค. 2559 – ต.ค. 2569 · โค้ด github.com/panifield/CN340-CNN_model_Stock_prediction · รูปทั้งหมดอยู่ที่ report/figures/</p>
+    <div class="verdict">
+      <div><b>Task A · ทายจากเมื่อวาน</b><span class="num">~50%</span><span>34 วิธี + ยืนยัน 9 ปี: ทำนายไม่ได้</span></div>
+      <div><b>Task A2 · ณ 16:00</b><span class="num">62.6%</span><span>เฉพาะวันช่วงราคา 0.5 บาท (ยืนยันแล้ว 66.4%)</span></div>
+      <div><b>Task A2 · ณ 16:30</b><span class="num">64.7%</span><span>KBANK ช่วงราคา 0.5 บาท (ยืนยันแล้ว 71.4%)</span></div>
+    </div>
+    <nav class="toc" aria-label="ลำดับสไลด์">
+      <b>ลำดับสไลด์ที่แนะนำ</b>
+      <ol>
+        <li><a href="#s1">โจทย์และข้อมูล</a></li>
+        <li><a href="#s2">Pipeline ของโมเดล</a></li>
+        <li><a href="#s3">ภาพ spectrogram ที่โมเดลเห็น</a></li>
+        <li><a href="#s4">วิเคราะห์ข้อมูล: ทำไมคู่/คี่เกือบสุ่ม</a></li>
+        <li><a href="#s5">สิ่งที่แก้ไขทั้งหมด</a></li>
+        <li><a href="#s6">แก้ bug STFT และพิสูจน์ว่าโมเดลเรียนรู้ได้</a></li>
+        <li><a href="#s7">วิธีประเมินผลที่กันการ "ดวงดี"</a></li>
+        <li><a href="#s8">Task A: เทียบ 34 วิธี</a></li>
+        <li><a href="#s9">Task A: ยืนยันบน 9 ปี และเทรน 10 ปี</a></li>
+        <li><a href="#s10">Task A2: ตั้งค่าและวิเคราะห์ช่วงท้ายตลาด</a></li>
+        <li><a href="#s11">Task A2: CNN+ANN vs กฎง่าย ๆ</a></li>
+        <li><a href="#s12">Task A2: ยืนยันกฎแบบ pre-registered</a></li>
+        <li><a href="#s13">วิเคราะห์เพิ่ม: ROC และ AUC</a></li>
+        <li><a href="#s14">วิเคราะห์เพิ่ม: threshold และ label ×2</a></li>
+        <li><a href="#s15">วิเคราะห์เพิ่ม: pretrain และ Optuna</a></li>
+        <li><a href="#s16">สรุปและข้อจำกัด</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <section class="slide" id="s1">
+    <span class="slide-no">สไลด์ 1</span>
+    <h2>โจทย์และข้อมูล</h2>
+    <p class="key">ทายว่าราคาปิดของวัน t เป็นเลขคู่หรือคี่ โดยแปลงข้อมูลราคาเป็น spectrogram ให้ CNN สกัด feature แล้วให้ ANN ทำนาย</p>
+    <div class="tbl"><table>
+      <tr><th></th><th>Task A</th><th>Task A2</th></tr>
+      <tr><td>เวลาที่ทาย</td><td>หลังตลาดปิดวัน t-1</td><td>16:00 หรือ 16:30 ของวัน t (ก่อนช่วงปิดตลาด ATC)</td></tr>
+      <tr><td>ข้อมูล input</td><td>ราคารายวัน 30 วันล่าสุด (t-30 ถึง t-1)</td><td>แท่งราคา 1 ชั่วโมง 36 แท่งล่าสุด + ราคา ณ เวลาที่ทาย</td></tr>
+      <tr><td>แหล่งข้อมูล</td><td><code>raw_data/</code> ส.ค. 2559 – ส.ค. 2569 (2,433 วัน/หุ้น)</td><td>Yahoo Finance รายชั่วโมง ต.ค. 2566 – ต.ค. 2569 (720 วัน/หุ้น)</td></tr>
+      <tr><td>Label</td><td colspan="2"><code>floor(ราคาปิด) % 2</code> ใช้ส่วนจำนวนเต็ม เพราะ KBANK มีราคา .5 (เช่น 162.5 นับเป็น 162 = คู่) · ราคาปิดทางการจาก <code>raw_data</code></td></tr>
+      <tr><td>สัดส่วนคู่ (10 ปี)</td><td colspan="2">KBANK 48.7% · ADVANC 51.4% (สมดุล ไม่ต้องปรับ class weight)</td></tr>
+    </table></div>
+    <p class="note">อาจารย์อนุญาตให้ใช้ข้อมูลช่วงไหนก็ได้ ช่วงแรกทดลองบนข้อมูลตั้งแต่ 7 ก.ย. 2568 แล้วขยายเป็น 10 ปี (A) และทั้งหมดที่มี (A2)</p>
+  </section>
+
+  <section class="slide" id="s2">
+    <span class="slide-no">สไลด์ 2</span>
+    <h2>Pipeline ของโมเดล</h2>
+    <p class="key">ข้อมูลแต่ละสัญญาณถูกแปลงด้วย STFT เป็นภาพ แล้วซ้อนเป็นหลาย channel ให้ CNN อ่านเหมือนภาพสี</p>
+    <pre class="mermaid">
+flowchart LR
+  A["ราคา 30 วัน / 36 แท่งชั่วโมง"] --> B["แยกสัญญาณ<br/>return · gap · high-low · volume"]
+  B --> C["STFT → spectrogram<br/>(ภาพ freq × time ต่อ channel)"]
+  C --> D["CNN<br/>Conv 3×3 ×2 + BatchNorm"]
+  D --> E["ย่อ feature (bottleneck 8)"]
+  F["feature ราคา ณ เวลาที่ทาย<br/>คู่/คี่ตอนนี้ · ช่วงราคา · ระยะจาก open/high/low"] --> G["ANN<br/>Dense 64 → 16"]
+  E --> G
+  F --> H["ทางลัด (skip MLP)"]
+  G --> I(("P(คี่)"))
+  H --> I
+    </pre>
+    <ul>
+      <li><b>Task A:</b> 4 สัญญาณ → spectrogram 4×6×16 → CNN → ANN (Dense 64 → 16 → 1)</li>
+      <li><b>Task A2:</b> 3 สัญญาณรายชั่วโมง → spectrogram 3×5×19 → CNN และ feature ราคา ณ เวลาที่ทาย ซึ่งส่งเข้า ANN และผ่านทางลัดตรงไปที่ output</li>
+      <li><b>การเทรน:</b> Adam, early stopping ตาม val loss และ ensemble 3 seed ใช้ GPU (RTX 5070 Laptop) อัตโนมัติ</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s3">
+    <span class="slide-no">สไลด์ 3</span>
+    <h2>ภาพ spectrogram ที่โมเดลเห็น</h2>
+    <p class="key">Spectrogram ของวันคู่และวันคี่ดูไม่ต่างกัน ผลต่างเฉลี่ยของสองกลุ่ม (แถวล่าง) เกือบเป็นสีขาวทั้งภาพ</p>
+    <figure><img src="figures/a1_kbank_full_spectrogram.png" alt="ราคาปิด KBANK และ spectrogram ของ 4 สัญญาณตลอดช่วง ก.ย. 2568 – ส.ค. 2569"><figcaption>a1_kbank_full_spectrogram.png: ราคาปิด (จุดแดงคือคี่ จุดฟ้าคือคู่) กับ spectrogram ทั้งช่วง</figcaption></figure>
+    <figure><img src="figures/a3_kbank_mean_even_vs_odd.png" alt="spectrogram เฉลี่ยของวันคู่ วันคี่ และผลต่าง"><figcaption>a3_kbank_mean_even_vs_odd.png: เฉลี่ยวันคู่ / วันคี่ / ผลต่าง (ODD − EVEN)</figcaption></figure>
+    <ul>
+      <li><b>ภาพบน:</b> ช่วงที่ราคาผันผวน (เช่น มี.ค.–เม.ย. 2569) เห็นเป็นแถบสว่างชัดเจน spectrogram จับความผันผวนได้ดี</li>
+      <li><b>ภาพล่าง:</b> ภาพเฉลี่ยของวันคู่กับวันคี่แทบเหมือนกัน แปลว่าสิ่งที่ spectrogram เห็นไม่เกี่ยวกับคู่/คี่ เป็นสัญญาณแรกว่าโจทย์นี้อาจทายไม่ได้</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s4">
+    <span class="slide-no">สไลด์ 4</span>
+    <h2>วิเคราะห์ข้อมูล: ทำไมคู่/คี่รายวันเกือบสุ่ม</h2>
+    <p class="key">ราคาขยับเป็นเลขคู่ (คู่/คี่เหมือนเดิม) กับเลขคี่ (คู่/คี่สลับ) บ่อยพอ ๆ กัน คู่/คี่ของวันนี้จึงแทบไม่ขึ้นกับเมื่อวาน</p>
+    <figure><img src="figures/f1_daily_change_parity.png" alt="Histogram ส่วนต่างราคาบาทเต็มจากเมื่อวาน แยกสีตามว่าคู่/คี่เหมือนเดิมหรือสลับ"><figcaption>f1_daily_change_parity.png: ส่วนต่างราคาจากเมื่อวาน 10 ปี (สีฟ้า = คู่/คี่เหมือนเดิม, สีส้ม = สลับ)</figcaption></figure>
+    <ul>
+      <li><b>ราคาไม่เปลี่ยนบ่อยที่สุด:</b> ขยับ 0 บาท 20–22% ของวัน แต่ขยับ ±1 บาท (สลับ) รวมกันได้ประมาณ 32–33% ทำให้สองฝั่งหักล้างกัน</li>
+      <li><b>ผลรวม:</b> โอกาสที่วันนี้คู่/คี่เหมือนเมื่อวานคือ <b>49.7%</b> (KBANK) และ <b>51.2%</b> (ADVANC) เกือบเท่าโยนเหรียญ</li>
+      <li><b>เช็คเพิ่ม:</b> ต่อให้ใช้ราคาเปิดของวัน t ซึ่งรู้ก่อนตลาดปิด ก็ทายคู่/คี่ตอนปิดได้แค่ 48.8% (KBANK) และ 50.5% (ADVANC)</li>
+      <li><b>ข้อสรุป:</b> ข้อมูลถึงเมื่อวานจึงทายไม่ได้ ไม่ว่าจะใช้โมเดลไหน (ยืนยันด้วยการทดลองในสไลด์ 8–9)</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s5">
+    <span class="slide-no">สไลด์ 5</span>
+    <h2>สิ่งที่แก้ไขทั้งหมด</h2>
+    <p class="key">ทุกปัญหาที่เจอระหว่างทาง พร้อมวิธีที่ตรวจเจอและวิธีแก้</p>
+    <div class="tbl"><table>
+      <tr><th>#</th><th>ปัญหา</th><th>ตรวจเจอยังไง</th><th>แก้ยังไง</th><th>ผลกระทบ</th></tr>
+      <tr><td class="n">1</td><td>Spectrogram ให้น้ำหนักข้อมูลเมื่อวาน (t-1) แค่ 0.5% ของวันกลางหน้าต่าง</td><td>ให้โมเดลทาย label ที่ควรทายได้ (ความผันผวน) แต่ KBANK ได้แค่ 45%</td><td>STFT แบบ <code>boundary="even"</code> สะท้อนข้อมูลภายในหน้าต่างมาเติมขอบ (ไม่ใช้ข้อมูลอนาคต)</td><td>label ความผันผวน 45% → 84%</td></tr>
+      <tr><td class="n">2</td><td>ยังไม่ได้ตรวจว่ามี data leak หรือเปล่า</td><td>-</td><td>เขียนเทส: สุ่มแก้ข้อมูลตั้งแต่เวลาที่ทายเป็นต้นไป แล้วเช็คว่า input ไม่เปลี่ยน และมีตัวควบคุมยืนยันว่าเทสจับ leak ได้</td><td>ไม่พบ leak ทั้ง A และ A2 (ครอบคลุม input ทุกแบบ)</td></tr>
+      <tr><td class="n">3</td><td>ตอนแรกเลือกโมเดลจากผล test เพียงชุดเดียว (32 วัน)</td><td>ช่วงที่การเดาสุ่มทำได้ ±17% กว้างเกินจะสรุปได้</td><td>เปลี่ยนเป็น walk-forward + holdout, ยืนยันบนข้อมูลอื่น และล็อกสมมติฐานก่อนทดสอบ</td><td>วิธีอันดับ 1 (57.5%) ถูกเปิดโปงว่าเป็นดวง</td></tr>
+      <tr><td class="n">4</td><td>สคริปต์ ensemble ไม่โหลดผลของโมเดลสมาชิก</td><td>ensemble หายไปจากตารางรอบยืนยัน</td><td>แก้ให้โหลดผลของสมาชิกทุกตัวก่อนรวม</td><td>รายงานครบทุกวิธี</td></tr>
+      <tr><td class="n">5</td><td>ราคารายวันจาก Yahoo ผิดหลายวันในปี 2567 และมีแถวหลอก (7 ต.ค. 2568: Volume = 0, OHLC เท่ากันหมด)</td><td>เทียบกับ <code>raw_data</code> ทีละวัน</td><td>ใช้ label จาก <code>raw_data</code> เป็นหลัก ใช้ Yahoo เฉพาะหลัง 28 ส.ค. 2569 และตัดแถว Volume = 0</td><td>label ถูกต้องทุกวัน (เทสยืนยันแล้ว)</td></tr>
+      <tr><td class="n">6</td><td>แท่ง Yahoo ตั้งชื่อตามเวลา "เริ่ม" แท่ง "16:00" จึงครอบคลุม 16:00–16:30</td><td>ตรวจเวลาของแท่งและเทียบราคาแท่งสุดท้ายกับราคาปิด</td><td>ทาย ณ 16:00 ใช้แท่งถึง 15:00 เท่านั้น และเทส leak แยกตามเวลาที่ทาย</td><td>ไม่ใช้ข้อมูลที่ยังไม่เกิดขึ้น</td></tr>
+      <tr><td class="n">7</td><td>CNN+ANN ของ A2 เรียนกฎง่าย ๆ ไม่ได้ (49.9% ขณะที่กฎได้ 55.9%)</td><td>เทียบกับ baseline "ทายตามคู่/คี่ตอนนี้" และ logistic regression</td><td>feature จาก CNN 256 ค่ากลบ feature สำคัญ 1 ค่า → ย่อ CNN เหลือ 8 ค่า และเพิ่มทางลัด (skip MLP) จาก feature ราคาไปที่ output</td><td>ช่วงราคา 0.5 บาท: 50.9% → 61.1%</td></tr>
+      <tr><td class="n">8</td><td>การรันค้าง เพราะเครื่องเข้าโหมดประหยัดพลังงาน</td><td>CPU time ของ process ไม่เพิ่ม</td><td>เพิ่มการแสดงความคืบหน้า และรันเฉพาะวิธีที่จำเป็น</td><td>รันจบใน ~25 นาที</td></tr>
+    </table></div>
+  </section>
+
+  <section class="slide" id="s6">
+    <span class="slide-no">สไลด์ 6</span>
+    <h2>แก้ bug STFT และพิสูจน์ว่าโมเดลเรียนรู้ได้</h2>
+    <p class="key">ก่อนแก้ โมเดลแทบมองไม่เห็นข้อมูล 3 วันล่าสุด หลังแก้ โมเดลทายความผันผวนได้ 73–84% แต่คู่/คี่ยังเท่าการเดา</p>
+    <figure><img src="figures/f2_stft_fix.png" alt="น้ำหนักของแต่ละวันใน spectrogram ก่อนและหลังแก้"><figcaption>f2_stft_fix.png: น้ำหนักของแต่ละวันใน spectrogram ก่อน/หลังแก้</figcaption></figure>
+    <figure><img src="figures/f3_controls.png" alt="accuracy ของ label ความผันผวนและคู่คี่ ก่อนและหลังแก้"><figcaption>f3_controls.png: ตัวควบคุมบวก (ความผันผวน) เทียบกับเป้าหมายจริง (คู่/คี่)</figcaption></figure>
+    <ul>
+      <li><b>สาเหตุ:</b> Hann window มีค่าเกือบ 0 ที่ขอบ ถ้าไม่ pad วันล่าสุดจะอยู่ที่ขอบของ frame สุดท้ายเสมอ</li>
+      <li><b>ตัวควบคุมบวก:</b> ใช้ label ที่รู้ว่าทายได้จาก input จริง (ความผันผวน 5 วันล่าสุดสูงกว่า median) เพื่อพิสูจน์ว่า pipeline ทำงาน</li>
+      <li><b>ตัวควบคุมลบ:</b> label สุ่ม ได้ 34–57% อยู่ในช่วงที่การเดาสุ่มทำได้ แปลว่าไม่มี leak</li>
+      <li><b>ข้อสรุป:</b> ผลคู่/คี่ที่ได้ ~50% เป็นเพราะข้อมูลไม่มีรูปแบบให้เรียน ไม่ใช่เพราะโมเดลเสีย</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s7">
+    <span class="slide-no">สไลด์ 7</span>
+    <h2>วิธีประเมินผลที่กันการ "ดวงดี"</h2>
+    <p class="key">ยิ่งลองหลายวิธี ยิ่งมีโอกาสเจอตัวเลขสวยโดยบังเอิญ จึงแยก "ข้อมูลที่ใช้เลือก" ออกจาก "ข้อมูลที่ใช้พิสูจน์" ทุกครั้ง</p>
+    <div class="two">
+      <ul>
+        <li><b>Walk-forward:</b> เทรนด้วยข้อมูลก่อนช่วงทดสอบเท่านั้น และ retrain ทุก 20 วัน</li>
+        <li><b>Holdout:</b> ข้อมูลช่วงท้ายที่ล็อกไว้ ใช้รายงานผลอย่างเดียว ไม่ใช้เลือกวิธี</li>
+        <li><b>Normalize:</b> ใช้ค่าเฉลี่ยและ SD จาก train เท่านั้น</li>
+      </ul>
+      <ul>
+        <li><b>Bonferroni:</b> ลอง k วิธี ต้องได้ p &lt; 0.05/k</li>
+        <li><b>Replication:</b> ทดสอบซ้ำบนปีอื่นที่ไม่เคยใช้เลือก</li>
+        <li><b>Pre-registration:</b> เขียนสมมติฐานและเกณฑ์ลงไฟล์ก่อนดูผลทดสอบ</li>
+      </ul>
+    </div>
+    <p class="note">ไฟล์ล็อกสมมติฐาน: <code>A/experiments/clustering/preregistration.md</code>, <code>A2/analysis/preregistration.md</code></p>
+  </section>
+
+  <section class="slide" id="s8">
+    <span class="slide-no">สไลด์ 8</span>
+    <h2>Task A: เทียบ 34 วิธี</h2>
+    <p class="key">ไม่มีวิธีไหนหลุดจากช่วงที่การเดาสุ่มทำได้ (แถบเทา) และการเพิ่ม layer ไม่ช่วย</p>
+    <figure><img src="figures/a4_methods_comparison.png" alt="accuracy ของ 34 วิธีบน walk-forward และ holdout"><figcaption>a4_methods_comparison.png: 34 วิธี บนข้อมูลปี 2568 (ซ้าย = ใช้เลือก, ขวา = holdout)</figcaption></figure>
+    <div class="tbl"><table>
+      <tr><th>กลุ่ม</th><th>ที่ลอง</th><th class="n">walk-forward</th></tr>
+      <tr><td>ขนาดโมเดล</td><td>CNN 1 ชั้น (441 params) / 2 ชั้น / 4 ชั้น (520k params)</td><td class="n">48–53%</td></tr>
+      <tr><td>ปรับ spectrogram</td><td>ย้อนหลัง 20/30/60 วัน, STFT window 6/10/16</td><td class="n">50–53%</td></tr>
+      <tr><td>แปลงเป็นภาพแบบอื่น</td><td>Wavelet (CWT), Gramian Angular Field, STFT เก็บ phase, 1D-CNN</td><td class="n">47–56%</td></tr>
+      <tr><td>Input</td><td>return อย่างเดียว, สัญญาณคู่/คี่, คู่/คี่เมื่อวานเข้า ANN, เลขกลม</td><td class="n">43–57.5%</td></tr>
+      <tr><td>เทคนิคการเทรน</td><td>รวม 2 หุ้น, noise augmentation, transfer learning, ensemble</td><td class="n">44–56%</td></tr>
+      <tr><td>ไม่ใช้ CNN</td><td>logistic regression, random forest, gradient boosting</td><td class="n">49–51%</td></tr>
+    </table></div>
+    <p class="note">อันดับ 1 คือ <code>hybrid_extras</code> 57.5% (p = 0.034) ไม่ผ่านเกณฑ์ Bonferroni ซึ่งต้องได้ p &lt; 0.0015</p>
+  </section>
+
+  <section class="slide" id="s9">
+    <span class="slide-no">สไลด์ 9</span>
+    <h2>Task A: ยืนยันบน 9 ปี และเทรน 10 ปี</h2>
+    <p class="key">อันดับ 1 ของปี 2568 (57.5%) เหลือ 50.5% เมื่อทดสอบบนอีก 9 ปี และเทรนด้วยข้อมูล 10 เท่าก็ไม่ช่วย</p>
+    <figure><img src="figures/a5_replication_9y.png" alt="accuracy รายปีและรวมของแต่ละวิธีบน 9 ปีก่อนหน้า"><figcaption>a5_replication_9y.png: จุดเทา = แต่ละปี, จุดฟ้า = รวม 9 ปีพร้อม 95% CI</figcaption></figure>
+    <div class="two">
+      <div class="tbl"><table>
+        <tr><th>ยืนยัน 9 ปี (~2,000 วัน)</th><th class="n">ปี 2568</th><th class="n">9 ปี</th></tr>
+        <tr><td><code>hybrid_extras</code> (อันดับ 1)</td><td class="n">57.5%</td><td class="n">50.5%</td></tr>
+        <tr><td><code>complex_stft_hybrid</code> (อันดับ 2)</td><td class="n">56.2%</td><td class="n">50.8%</td></tr>
+        <tr><td><code>ens_top3</code> (อันดับ 3)</td><td class="n">55.6%</td><td class="n">50.3%</td></tr>
+        <tr><td>ทายคลาสเดิมตลอด</td><td class="n">47.5%</td><td class="n">51.1%</td></tr>
+      </table></div>
+      <div class="tbl"><table>
+        <tr><th>เทรน 10 ปี → ทดสอบปี 2568 (472 วัน)</th><th class="n">acc</th><th class="n">p</th></tr>
+        <tr><td>+ feature เลขกลม</td><td class="n">53.4%</td><td class="n">0.077</td></tr>
+        <tr><td>CNN 4 ชั้น</td><td class="n">52.5%</td><td class="n">0.145</td></tr>
+        <tr><td>โมเดลหลัก (base)</td><td class="n">52.1%</td><td class="n">0.191</td></tr>
+        <tr><td>ทายคลาสเดิมตลอด</td><td class="n">51.9%</td><td class="n">0.217</td></tr>
+      </table></div>
+    </div>
+    <ul>
+      <li><b>เลขกลม (ล็อกสมมติฐานไว้ก่อน):</b> "ADVANC เมื่อวานปิดลงท้าย 0 → วันนี้คู่" ได้ 58.2% ในช่วงหาไอเดีย และ 58.8% ในช่วงทดสอบ (20/34 วัน, p = 0.20) ทิศทางตรงกัน แต่ข้อมูลน้อยเกินจะยืนยัน</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s10">
+    <span class="slide-no">สไลด์ 10</span>
+    <h2>Task A2: ตั้งค่าและวิเคราะห์ช่วงท้ายตลาด</h2>
+    <p class="key">หลัง 16:00 ราคาปิดเท่าเดิม 38–40% ของวัน และขยับ ±1 ช่วงราคาประมาณ 45% ที่เหลือ ผลต่อคู่/คี่ขึ้นกับว่าช่วงราคาเป็น 0.5 หรือ 1 บาท</p>
+    <figure><img src="figures/f4_close_vs_1600.png" alt="การกระจายของราคาปิดลบราคา ณ 16:00 หน่วยเป็นจำนวนช่วงราคา แยกตามช่วงราคา"><figcaption>f4_close_vs_1600.png: ราคาปิด − ราคา ณ 16:00 (หน่วยเป็นจำนวนช่วงราคา) ต.ค. 2566 – ต.ค. 2569</figcaption></figure>
+    <ul>
+      <li><b>ช่วงราคา 1 บาท</b> (ราคา ≥ 200): ขยับ ±1 ช่วงราคา = ±1 บาท คู่/คี่สลับทุกครั้ง → ทายถูกแค่ <b>51.9%</b></li>
+      <li><b>ช่วงราคา 0.5 บาท</b> (KBANK &lt; 200): ขยับ ±0.5 บาทเปลี่ยนส่วนจำนวนเต็มแค่ครึ่งหนึ่งของกรณี (เช่น 162.0 → 162.5 ยังเป็น 162) → ทายถูก <b>64.3%</b></li>
+      <li><b>ข้อสรุป:</b> สัญญาณที่ทายได้มาจากกลไกช่วงราคาของตลาด SET ไม่ได้มาจากรูปแบบราคา</li>
+    </ul>
+    <figure><img src="figures/b1_a2_spectrogram_examples.png" alt="spectrogram ของแท่งชั่วโมง 36 แท่งล่าสุดถึง 16:00"><figcaption>b1_a2_spectrogram_examples.png: input ของ A2 (36 แท่งชั่วโมงถึง 16:00)</figcaption></figure>
+  </section>
+
+  <section class="slide" id="s11">
+    <span class="slide-no">สไลด์ 11</span>
+    <h2>Task A2: CNN+ANN vs กฎง่าย ๆ</h2>
+    <p class="key">CNN+ANN หลังแก้โครงสร้างเรียนกฎช่วงราคา 0.5 บาทได้ แต่ไม่ชนะกฎ และ CNN อย่างเดียวได้ ~50% ทุกกรณี</p>
+    <figure><img src="figures/f6_a2_models_by_tick.png" alt="accuracy ของแต่ละโมเดลแยกตามช่วงราคา ทั้ง 16:00 และ 16:30"><figcaption>f6_a2_models_by_tick.png: walk-forward ต.ค. 2567 – ต.ค. 2569 (982 วัน) แยกตามช่วงราคา</figcaption></figure>
+    <div class="tbl"><table>
+      <tr><th>วิธี (walk-forward 982 วัน)</th><th class="n">ณ 16:00</th><th class="n">ณ 16:30</th></tr>
+      <tr><td>CNN+ANN (skip MLP), โมเดลหลัก</td><td class="n">53.5%</td><td class="n">57.3%</td></tr>
+      <tr><td>กฎ: ทายตามคู่/คี่ตอนนี้</td><td class="n">55.9%</td><td class="n">54.3%</td></tr>
+      <tr><td>Logistic regression</td><td class="n">55.6%</td><td class="n">55.7%</td></tr>
+      <tr><td>CNN อย่างเดียว</td><td class="n">52.2%</td><td class="n">50.8%</td></tr>
+      <tr><td>CNN+ANN เดิม</td><td class="n">49.9%</td><td class="n">ไม่ได้รัน</td></tr>
+    </table></div>
+    <ul>
+      <li><b>ตอน 16:30 CNN+ANN ดูชนะกฎ แต่ไม่ได้เจอข้อมูลใหม่:</b>
+        <ul>
+          <li>KBANK ทายเหมือนกฎ 96% ของวัน</li>
+          <li>ADVANC ได้ 51.4% ระดับการเดา ที่ดูชนะเพราะกฎทำได้แย่กว่าการเดาในช่วงนี้ (45.3%)</li>
+        </ul>
+      </li>
+      <li><b>CNN+ANN เดิมแพ้เพราะ feature จาก CNN 256 ค่ากลบ feature สำคัญ:</b> ย่อ CNN และเพิ่มทางลัดแล้ว ช่วงราคา 0.5 บาทดีขึ้นจาก 51% เป็น 61%</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s12">
+    <span class="slide-no">สไลด์ 12</span>
+    <h2>Task A2: ยืนยันกฎแบบ pre-registered</h2>
+    <p class="key">กฎช่วงราคา 0.5 บาทผ่านการยืนยันบนข้อมูลที่ไม่เคยใช้ (66–71%) ส่วนรูปแบบที่เจอหลังดูข้อมูล (ADVANC ทายตรงข้าม) ไม่ผ่าน</p>
+    <figure><img src="figures/f5_rule_confirmation.png" alt="accuracy ของกฎพร้อม 95% CI ในช่วงยืนยันและช่วงหาไอเดีย"><figcaption>f5_rule_confirmation.png: ฟ้า = ข้อมูลยืนยัน ต.ค. 2566 – ก.ย. 2567, ส้ม = ช่วงหาไอเดีย</figcaption></figure>
+    <div class="tbl"><table>
+      <tr><th>สมมติฐาน (เกณฑ์ p &lt; 0.0167)</th><th class="n">ช่วงหาไอเดีย</th><th class="n">ข้อมูลยืนยัน</th><th>ผล</th></tr>
+      <tr><td>H1: ช่วงราคา 0.5 บาท ณ 16:00 → คู่/คี่เหมือนตอนนี้</td><td class="n">62.6%</td><td class="n">66.4% (n=244)</td><td class="pass">ผ่าน (p ≈ 10⁻⁷)</td></tr>
+      <tr><td>H2: KBANK ช่วงราคา 0.5 บาท ณ 16:30</td><td class="n">64.6%</td><td class="n">71.4% (n=234)</td><td class="pass">ผ่าน (p ≈ 10⁻¹¹)</td></tr>
+      <tr><td>H3: ADVANC ณ 16:30 → ทายตรงข้าม</td><td class="n">54.6%</td><td class="n">47.3% (n=224)</td><td class="fail">ไม่ผ่าน</td></tr>
+    </table></div>
+    <ul>
+      <li><b>ทายเฉพาะวันที่มีสัญญาณ:</b> ทายเฉพาะวันที่ช่วงราคาเป็น 0.5 บาท ได้ 62–67% ครอบคลุม ~40% ของวัน (393/982) ในช่วงทดสอบหลัก</li>
+      <li><b>ทายใกล้ปิดยิ่งแม่น:</b> เลื่อนจาก 16:00 ไป 16:30 แม่นขึ้น 2–5% เพราะเหลือเวลาให้ราคาขยับน้อยลง</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s13">
+    <span class="slide-no">สไลด์ 13</span>
+    <h2>วิเคราะห์เพิ่ม: ROC และ AUC</h2>
+    <p class="key">AUC ไม่ขึ้นกับ threshold และยืนยันผลเดิม: Task A ได้ ~0.50 ทุกมุม ส่วน A2 ได้ 0.61–0.65 เฉพาะวันที่ช่วงราคาเป็น 0.5 บาท</p>
+    <figure><img src="figures/g1_roc_curves.png" alt="ROC curve ของ Task A และ A2 แยกตามโมเดล"><figcaption>g1_roc_curves.png: ใช้ค่า P(odd) ที่ทายแบบ out-of-sample ไว้แล้ว (ไม่เทรนใหม่)</figcaption></figure>
+    <figure><img src="figures/g2_auc_by_subset.png" alt="AUC พร้อม 95% CI แยกตามหุ้นและช่วงราคา"><figcaption>g2_auc_by_subset.png: AUC แยกหุ้นและช่วงราคา พร้อม 95% bootstrap CI</figcaption></figure>
+    <div class="tbl"><table>
+      <tr><th>แหล่ง / โมเดล</th><th class="n">n</th><th class="n">AUC</th><th class="n">p (AUC &gt; 0.5)</th></tr>
+      <tr><td>A ทดสอบซ้ำ 9 ปี, <code>hybrid_extras</code></td><td class="n">2,016</td><td class="n">0.506</td><td class="n">0.32</td></tr>
+      <tr><td>A2 16:00, CNN+ANN เดิม</td><td class="n">982</td><td class="n">0.504</td><td class="n">0.42</td></tr>
+      <tr><td>A2 16:00, CNN+ANN (skip MLP)</td><td class="n">982</td><td class="n">0.544</td><td class="n">0.009</td></tr>
+      <tr><td>A2 16:30, CNN+ANN (skip MLP)</td><td class="n">984</td><td class="n">0.586</td><td class="n">2×10⁻⁶</td></tr>
+      <tr><td>A2 16:30, เฉพาะช่วงราคา 0.5 บาท</td><td class="n">394</td><td class="n">0.646</td><td class="n">3×10⁻⁷</td></tr>
+      <tr><td>A2 16:30, เฉพาะช่วงราคา 1 บาท</td><td class="n">590</td><td class="n">0.513</td><td class="n">0.29</td></tr>
+    </table></div>
+  </section>
+
+  <section class="slide" id="s14">
+    <span class="slide-no">สไลด์ 14</span>
+    <h2>วิเคราะห์เพิ่ม: threshold และ label แบบ ×2</h2>
+    <p class="key">ปรับ threshold หรือเปลี่ยน label ไม่ได้ทำให้ทายได้จริง ที่ดูดีขึ้นมาจากการมองย้อนหลังหรือคลาสไม่สมดุล</p>
+    <figure><img src="figures/g3_threshold_sweep.png" alt="accuracy เทียบ threshold 0.30 ถึง 0.70"><figcaption>g3_threshold_sweep.png: ไล่ threshold 0.30–0.70 บนข้อมูลย้อนหลัง (จุด = ค่าดีสุดเมื่อมองย้อนหลัง)</figcaption></figure>
+    <ul>
+      <li><b>Threshold:</b> มองย้อนหลังเพิ่มได้ 1–3% แต่เมื่อเลือก threshold จากครึ่งแรกตามเวลาแล้ววัดครึ่งหลัง ไม่ดีกว่า 0.5 เลย (A2 16:30: 53.3% เทียบกับ 56.1% ที่ 0.5) จึงใช้ 0.5 ต่อ</li>
+    </ul>
+    <figure><img src="figures/g4_x2_label.png" alt="สัดส่วนวันคี่ต่อปีของ label สองแบบ และ accuracy เทียบการทายคลาสใหญ่"><figcaption>g4_x2_label.png: label round(close × 2) % 2 = "ราคาปิดลงท้าย .5 หรือไม่"</figcaption></figure>
+    <ul>
+      <li><b>Label ×2:</b> ADVANC ราคา ≥ 200 (ช่วงราคา 1 บาท) ปี 2566–2569 → label เป็น 0 เกือบทุกวัน (คี่ 0–3%)</li>
+      <li>accuracy ดูสูง 64–87% แต่ <b>ต่ำกว่าการทายคลาสใหญ่ตลอดทุกกรณี</b> และในวันช่วงราคา 0.5 บาทที่ label สมดุล ได้ 51.6% เทียบ 51.9%</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s15">
+    <span class="slide-no">สไลด์ 15</span>
+    <h2>วิเคราะห์เพิ่ม: pretrain → fine-tune และ Optuna</h2>
+    <p class="key">ทั้ง transfer learning จากข้อมูล 8 ปี และการค้นหา hyperparameter อัตโนมัติ 50 รอบ ไม่ทำให้ดีขึ้นบนข้อมูลที่ไม่เคยเห็น</p>
+    <figure><img src="figures/g5_optuna.png" alt="ประวัติการค้นหา Optuna และผลเทียบบน holdout และ 9 ปี"><figcaption>g5_optuna.png: ซ้าย = 50 trial อยู่ในแถบการเดาทั้งหมด, ขวา = best trial ตกลงบนข้อมูลใหม่</figcaption></figure>
+    <div class="two">
+      <div class="tbl"><table>
+        <tr><th>Pretrain ปี 2559–2566 → fine-tune</th><th class="n">WF</th><th class="n">holdout</th></tr>
+        <tr><td>fine-tune ทั้งโมเดล (lr 1e-4)</td><td class="n">52.5%</td><td class="n">46.9%</td></tr>
+        <tr><td>freeze CNN เทรนแค่ ANN</td><td class="n">53.7%</td><td class="n">48.4%</td></tr>
+        <tr><td>base (เทรนปีเดียว)</td><td class="n">52.5%</td><td class="n">51.6%</td></tr>
+      </table></div>
+      <div class="tbl"><table>
+        <tr><th>Optuna 50 trial</th><th class="n">ใช้เลือก</th><th class="n">holdout</th><th class="n">9 ปี</th></tr>
+        <tr><td>best trial</td><td class="n">55.6%</td><td class="n">46.9%</td><td class="n">50.0%</td></tr>
+        <tr><td><code>base</code></td><td class="n">52.5%</td><td class="n">51.6%</td><td class="n">50.4%</td></tr>
+        <tr><td><code>hybrid_extras</code></td><td class="n">57.5%</td><td class="n">60.9%</td><td class="n">50.5%</td></tr>
+      </table></div>
+    </div>
+    <ul>
+      <li><b>Optuna:</b> ค้นบน walk-forward อย่างเดียว (transform, window, STFT, channel, extras, ขนาด CNN, lr, weight decay, batch, bottleneck, skip) best p = 0.089 ไม่ผ่าน Bonferroni (ต้อง &lt; 0.05/50 = 0.001) ค่าความสำคัญของ hyperparameter กระจายตัว ไม่มีตัวไหนเด่น = สัญญาณของ noise</li>
+      <li><b>Pretrain:</b> ข้อมูลเก่าจบก่อนช่วงทดสอบ ~2 ปี (ไม่มี leak) แต่ไม่มี pattern คู่/คี่ให้ถ่ายทอด</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s16">
+    <span class="slide-no">สไลด์ 16</span>
+    <h2>สรุปและข้อจำกัด</h2>
+    <p class="key">Spectrogram + CNN ไม่ได้เพิ่มข้อมูลเกี่ยวกับคู่/คี่ สิ่งเดียวที่ทายได้คือกลไกช่วงราคา 0.5 บาทช่วงท้ายตลาด ซึ่ง CNN+ANN เรียนได้เมื่อป้อน feature ราคาตอนนั้นเข้าไปตรง ๆ</p>
+    <div class="tbl"><table>
+      <tr><th>คำถาม</th><th>คำตอบจากข้อมูล</th></tr>
+      <tr><td>ทายคู่/คี่จากข้อมูลถึงเมื่อวานได้ไหม</td><td>ไม่ได้ ~50% (34 วิธี, 9 ปี, ข้อมูล 10 ปี)</td></tr>
+      <tr><td>ทายระหว่างวันได้ไหม</td><td>ได้เฉพาะช่วงราคา 0.5 บาท: 62–71% (ยืนยันแล้ว)</td></tr>
+      <tr><td>CNN บน spectrogram ช่วยไหม</td><td>ไม่ช่วย CNN อย่างเดียวได้ ~50% ทุกการทดลอง</td></tr>
+      <tr><td>โมเดลใหญ่ขึ้นหรือข้อมูลมากขึ้นช่วยไหม</td><td>ไม่ช่วยใน A ส่วน A2 ช่วยให้วัดผลได้แม่นขึ้น</td></tr>
+      <tr><td>ปรับ threshold / label ×2 / pretrain / Optuna ช่วยไหม</td><td>ไม่ช่วย ทุกวิธีกลับมาที่ ~50% บนข้อมูลที่ไม่เคยเห็น</td></tr>
+    </table></div>
+    <h3>ข้อจำกัด</h3>
+    <ul>
+      <li>มีแค่ 2 หุ้น ADVANC อยู่ในช่วงราคา 1 บาทเกือบตลอด จึงไม่มีตัวอย่างช่วงราคา 0.5 บาทให้เทียบ</li>
+      <li>ข้อมูลระหว่างวันละเอียดแค่ 1 ชั่วโมง (Yahoo ให้ข้อมูล 5 นาทีย้อนหลังได้แค่ ~60 วัน) และไม่มีข้อมูล order book ช่วง ATC</li>
+      <li>ข้อมูล Yahoo ดาวน์โหลดซ้ำได้ย้อนหลังแค่ ~730 วัน ถ้าโหลดใหม่ ผลจะไม่ตรงเป๊ะ</li>
+      <li>เรื่องเลขกลมใน A ยังสรุปไม่ได้เพราะวันทดสอบน้อย (34 วัน)</li>
+    </ul>
+  </section>
+</div>

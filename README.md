@@ -64,3 +64,8 @@ python A2/analysis/rules.py           # ยืนยันกฎบนข้อ�
 
 รายละเอียด: `A/experiments/results/*/report.md`, `A/experiments/clustering/results.md`,
 `A2/outputs/extended/report.md`, `A2/outputs/extended_1630/report.md`, `A2/analysis/results.md`
+
+**วิเคราะห์เพิ่ม** (`followup/`, รายละเอียดใน `followup/README.md`): ROC/AUC, threshold sweep, label แบบ round(close×2)%2,
+pretrain ปี 2016-2023 → fine-tune และ Optuna 50 trial -- ทุกวิธียืนยันผลเดิม (A ~50%, A2 ทายได้เฉพาะช่วงราคา 0.5 บาท)
+
+**รายงาน/สไลด์:** `report/CN340_parity_report.pdf` (สร้างด้วย `python report/make_figures.py` แล้ว `python report/make_pdf.py`)

@@ -1,0 +1,65 @@
+label,source,model,subset,n,acc,odd_share,p
+floor,2025-26,B_majority,ALL,224,0.4955,0.4955,0.5794
+floor,2025-26,B_majority,KBANK,112,0.4554,0.5268,0.8507
+floor,2025-26,B_majority,ADVANC,112,0.5357,0.4643,0.2543
+floor,2025-26,B_majority,tick 0.5 days,55,0.4545,0.5636,0.7906
+floor,2025-26,B_persistence,ALL,224,0.4643,0.4955,0.8720
+floor,2025-26,B_persistence,KBANK,112,0.4911,0.5268,0.6115
+floor,2025-26,B_persistence,ADVANC,112,0.4375,0.4643,0.9220
+floor,2025-26,B_persistence,tick 0.5 days,55,0.4727,0.5636,0.7050
+floor,2025-26,base,ALL,224,0.5223,0.4955,0.2739
+floor,2025-26,base,KBANK,112,0.5268,0.5268,0.3184
+floor,2025-26,base,ADVANC,112,0.5179,0.4643,0.3885
+floor,2025-26,base,tick 0.5 days,55,0.5636,0.5636,0.2094
+floor,2025-26,hybrid_extras,ALL,224,0.5848,0.4955,0.0066
+floor,2025-26,hybrid_extras,KBANK,112,0.6161,0.5268,0.0089
+floor,2025-26,hybrid_extras,ADVANC,112,0.5536,0.4643,0.1493
+floor,2025-26,hybrid_extras,tick 0.5 days,55,0.6000,0.5636,0.0885
+floor,replication 9 yr,B_majority,ALL,2016,0.5114,0.4965,0.1581
+floor,replication 9 yr,B_majority,KBANK,1008,0.5040,0.5079,0.4128
+floor,replication 9 yr,B_majority,ADVANC,1008,0.5188,0.4851,0.1219
+floor,replication 9 yr,B_majority,tick 0.5 days,1334,0.4873,0.5142,0.8310
+floor,replication 9 yr,B_persistence,ALL,2016,0.5149,0.4965,0.0944
+floor,replication 9 yr,B_persistence,KBANK,1008,0.5188,0.5079,0.1219
+floor,replication 9 yr,B_persistence,ADVANC,1008,0.5109,0.4851,0.2542
+floor,replication 9 yr,B_persistence,tick 0.5 days,1334,0.5165,0.5142,0.1195
+floor,replication 9 yr,base,ALL,2016,0.5045,0.4965,0.3525
+floor,replication 9 yr,base,KBANK,1008,0.5000,0.5079,0.5126
+floor,replication 9 yr,base,ADVANC,1008,0.5089,0.4851,0.2962
+floor,replication 9 yr,base,tick 0.5 days,1334,0.5060,0.5142,0.3407
+floor,replication 9 yr,hybrid_extras,ALL,2016,0.5055,0.4965,0.3200
+floor,replication 9 yr,hybrid_extras,KBANK,1008,0.4970,0.5079,0.5872
+floor,replication 9 yr,hybrid_extras,ADVANC,1008,0.5139,0.4851,0.1976
+floor,replication 9 yr,hybrid_extras,tick 0.5 days,1334,0.4985,0.5142,0.5544
+x2,2025-26,B_majority,ALL,224,0.9152,0.0848,0.0000
+x2,2025-26,B_majority,KBANK,112,0.8304,0.1696,0.0000
+x2,2025-26,B_majority,ADVANC,112,1.0000,0.0000,0.0000
+x2,2025-26,B_majority,tick 0.5 days,55,0.6545,0.3455,0.0150
+x2,2025-26,B_persistence,ALL,224,0.8750,0.0848,0.0000
+x2,2025-26,B_persistence,KBANK,112,0.7500,0.1696,0.0000
+x2,2025-26,B_persistence,ADVANC,112,1.0000,0.0000,0.0000
+x2,2025-26,B_persistence,tick 0.5 days,55,0.4909,0.3455,0.6061
+x2,2025-26,base,ALL,224,0.8750,0.0848,0.0000
+x2,2025-26,base,KBANK,112,0.7500,0.1696,0.0000
+x2,2025-26,base,ADVANC,112,1.0000,0.0000,0.0000
+x2,2025-26,base,tick 0.5 days,55,0.6364,0.3455,0.0290
+x2,2025-26,hybrid_extras,ALL,224,0.8438,0.0848,0.0000
+x2,2025-26,hybrid_extras,KBANK,112,0.6875,0.1696,0.0000
+x2,2025-26,hybrid_extras,ADVANC,112,1.0000,0.0000,0.0000
+x2,2025-26,hybrid_extras,tick 0.5 days,55,0.6364,0.3455,0.0290
+x2,replication 9 yr,B_majority,ALL,2016,0.6622,0.3596,0.0000
+x2,replication 9 yr,B_majority,KBANK,1008,0.5754,0.4583,0.0000
+x2,replication 9 yr,B_majority,ADVANC,1008,0.7490,0.2609,0.0000
+x2,replication 9 yr,B_majority,tick 0.5 days,1334,0.5195,0.5135,0.0813
+x2,replication 9 yr,B_persistence,ALL,2016,0.6364,0.3596,0.0000
+x2,replication 9 yr,B_persistence,KBANK,1008,0.5298,0.4583,0.0315
+x2,replication 9 yr,B_persistence,ADVANC,1008,0.7431,0.2609,0.0000
+x2,replication 9 yr,B_persistence,tick 0.5 days,1334,0.4933,0.5135,0.6985
+x2,replication 9 yr,base,ALL,2016,0.6384,0.3596,0.0000
+x2,replication 9 yr,base,KBANK,1008,0.5575,0.4583,0.0001
+x2,replication 9 yr,base,ADVANC,1008,0.7192,0.2609,0.0000
+x2,replication 9 yr,base,tick 0.5 days,1334,0.5037,0.5135,0.4027
+x2,replication 9 yr,hybrid_extras,ALL,2016,0.6354,0.3596,0.0000
+x2,replication 9 yr,hybrid_extras,KBANK,1008,0.5625,0.4583,0.0000
+x2,replication 9 yr,hybrid_extras,ADVANC,1008,0.7083,0.2609,0.0000
+x2,replication 9 yr,hybrid_extras,tick 0.5 days,1334,0.5157,0.5135,0.1308
