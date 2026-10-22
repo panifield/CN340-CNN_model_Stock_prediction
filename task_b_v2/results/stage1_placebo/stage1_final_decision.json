@@ -1,0 +1,40 @@
+{
+  "status": "ผลตามกติกา B21 — รอผู้ใช้ยืนยันก่อนไป Stage 2",
+  "supersedes": "results/stage1_representation/stage1_decision.json (ที่แนะนำ config รวมตามกติกา B16/B17 อย่างเดียว ไม่ได้ถูกลบหรือแก้)",
+  "carried_forward_config": "base",
+  "rule": "B21: ผู้ชนะ (ระดับปัจจัย) เฉลี่ยต่อ shuffle >= 1 -> ใช้ base ต่อ · < 1 -> ใช้ config รวม",
+  "placebo": {
+    "shuffles": [
+      0,
+      1,
+      2
+    ],
+    "n_factor_winners": [
+      2,
+      3,
+      2
+    ],
+    "mean_n_factor_winners": 2.3333,
+    "n_candidates_beating": [
+      2,
+      5,
+      2
+    ],
+    "mean_n_candidates_beating": 3.0,
+    "decision_primary": "base",
+    "decision_secondary": "base",
+    "primary_and_secondary_agree": true,
+    "max_delta_ic_per_shuffle": [
+      0.0436,
+      0.0597,
+      0.0399
+    ]
+  },
+  "stage1_real": {
+    "n_factor_winners": 3,
+    "n_candidates_beating": 5,
+    "max_delta_ic": 0.048
+  },
+  "b22_threshold_stage2_to_5": 0.0597,
+  "b22_rule": "Stage 2-5: ผู้ชนะต้องมี ΔIC > ค่านี้ (ค่าสูงสุดของ ΔIC ข้าม 7 ผู้สมัคร × 3 shuffle = 21 ค่า) และผ่านกติกา B16/B17 เดิมด้วย"
+}

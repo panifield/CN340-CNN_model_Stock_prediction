@@ -1,0 +1,26 @@
+{
+  "status": "แนะนำเท่านั้น — รอผู้ใช้ยืนยันที่ C4",
+  "smoke": false,
+  "noise_pooled": 0.02144609700335461,
+  "sampling_se_reference": 0.025031308716087945,
+  "winners": {
+    "window": "win64",
+    "type": "base",
+    "normalize": "norm_global",
+    "channel": "ch3"
+  },
+  "combined_changes": {
+    "window": 64,
+    "normalize": "global",
+    "channels": "ret3"
+  },
+  "combined_loses_to_base": false,
+  "combined_delta_ic": 0.040446474003440314,
+  "base_matches_c3": true,
+  "n_configs_logged": 10,
+  "seeds": [
+    0,
+    1,
+    2
+  ]
+}

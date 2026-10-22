@@ -1,0 +1,11 @@
+# ไฟล์ข้อมูลที่มี SHA-256 กำกับ -- เก็บแบบ byte-for-byte ห้าม git แปลง CRLF/LF
+# (ไม่งั้น clone ใหม่จะได้ SHA-256 ไม่ตรงกับ raw_data_intraday/README.md)
+raw_data_intraday/*.csv -text
+raw_data/*.csv -text
+raw_data_sources/** -text
+results/phase1d/** -text
+raw_data_intraday_live/** -text
+# ราคาปิดรายวัน (Phase 1D รอบ 2): ไฟล์ล็อก + snapshot มี SHA-256 กำกับ -- เก็บ byte-for-byte ห้าม git แปลง CRLF/LF
+# (เครื่อง Windows ตั้ง core.autocrlf=true: ไม่มีบรรทัดนี้ ไฟล์ล็อกจะถูก checkout เป็น CRLF และ snapshot ถูก commit เป็น LF -> SHA ไม่ตรง)
+raw_data_daily/** -text
+raw_data_daily_live/** -text

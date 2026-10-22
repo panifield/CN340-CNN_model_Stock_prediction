@@ -1,0 +1,20 @@
+{
+  "estimate": {
+    "unit_seconds_1seed_largest_train": 28.540857553482056,
+    "serial_minutes": 17.124514532089233,
+    "efficiency": 4.6,
+    "jobs": 6,
+    "estimated_minutes": 3.722720550454181,
+    "limit_minutes": 30.0,
+    "decision": "รัน",
+    "note": "หน่วยที่วัดคือ train ใหญ่สุด (fold 3) จึงประมาณเกินจริงเล็กน้อย (ปลอดภัย)"
+  },
+  "noise": 0.02017560680914222,
+  "floor": 0.0597,
+  "winners": {
+    "two_stage_spec": false,
+    "two_stage_hybrid": false
+  },
+  "two_stage_hybrid_vs_control": 0.015347902260013174,
+  "smoke": false
+}

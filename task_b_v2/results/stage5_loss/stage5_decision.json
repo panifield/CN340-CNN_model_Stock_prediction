@@ -1,0 +1,11 @@
+{
+  "noise": 0.02567555759773907,
+  "floor": 0.0597,
+  "winners": {
+    "base_mse": false,
+    "base_mae": false,
+    "hybrid_mse": false,
+    "hybrid_mae": false
+  },
+  "smoke": false
+}

@@ -1,0 +1,26 @@
+{
+  "label": "diagnostic — ห้ามใช้เลือก feature หรือ config",
+  "n_perm": 1000,
+  "seed": 0,
+  "chance_probability_per_feature": 0.21875,
+  "expected_consistent_by_chance_independent": 6.34375,
+  "null_summary": {
+    "n_consistent": {
+      "mean": 6.567,
+      "p95": 15.0
+    },
+    "max_abs_mean_ic": {
+      "mean": 0.05204824140981737,
+      "p95": 0.07550044163816258
+    },
+    "max_signed_mean_ic": {
+      "mean": 0.04426555730051968,
+      "p95": 0.0701946957394896
+    }
+  },
+  "observed": {
+    "n_consistent": 13,
+    "max_abs_mean_ic": 0.07700417896345556,
+    "max_signed_mean_ic": 0.05028138003266713
+  }
+}

@@ -1,0 +1,7 @@
+# task_b -- exact versions used to produce the recorded results (E4)
+# library defaults change between versions -> results may differ with other versions
+# tested with Python 3.12.5 (comments kept ASCII: pip on Windows reads this file as cp1252)
+numpy==2.1.1
+pandas==2.3.3
+scikit-learn==1.9.1
+xgboost==3.4.1

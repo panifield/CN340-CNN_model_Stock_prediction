@@ -1,0 +1,12 @@
+# task_b_v2 -- pin ตาม task_b/requirements-cnn.txt ของ branch เดิม (SPEC ข้อ 2.0) เพื่อให้ legacy ให้ผลตรงเดิม
+# numpy 2.1.1 / pandas 2.3.3 / scikit-learn 1.9.1 / xgboost 3.4.1 มาจาก legacy/requirements.txt
+# torch 2.8.0 (CPU) ยืนยันแล้วว่าใช้กับ numpy 2.1.1 / Python 3.12.5 ได้
+# (comment เป็น ASCII เท่านั้น: pip บน Windows อ่านไฟล์นี้เป็น cp1252)
+-r legacy/requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0
+scipy
+matplotlib
+pytest
+# Tier 2 (pretrained ResNet18) ต้องใช้ torchvision -- ยังไม่ได้ติดตั้ง ติดตั้งเมื่อถึงงานนั้นและผู้ใช้อนุญาต:
+# torchvision==0.23.0

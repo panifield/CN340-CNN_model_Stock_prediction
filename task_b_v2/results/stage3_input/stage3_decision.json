@@ -1,0 +1,113 @@
+{
+  "status": "ผล Stage 3 — ส่งต่อ Stage 4–5 อัตโนมัติ (B29)",
+  "noise": 0.01991277945824278,
+  "threshold_pair": 0.020176606096922893,
+  "p3": true,
+  "p3b": true,
+  "delta_hybrid_vs_base": 0.10180909764228073,
+  "delta_hybrid_vs_nocnn": 0.022093071401238853,
+  "delta_nocnn_vs_base": 0.07971602624104188,
+  "b22_hybrid_vs_base": true,
+  "track1_config": {
+    "name": "base",
+    "channels": "ret",
+    "window": 128,
+    "nperseg": 16,
+    "hop": 2,
+    "spec_type": "logpower",
+    "scale_mode": "fit_median",
+    "fixed_scale": 0.001,
+    "normalize": "band",
+    "arch": "cnn2d",
+    "head": "flatten",
+    "filters": [
+      8,
+      16
+    ],
+    "cnn_feat": 16,
+    "ann_hidden": [
+      32
+    ],
+    "dropout": 0.3,
+    "ann_input": "spec",
+    "train_mode": "e2e",
+    "loss": "huber",
+    "huber_delta": 1.0,
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "batch": 32,
+    "max_epochs": 200,
+    "patience": 25,
+    "noise_std": 0.3
+  },
+  "track2_config": {
+    "name": "hybrid",
+    "channels": "ret",
+    "window": 128,
+    "nperseg": 16,
+    "hop": 2,
+    "spec_type": "logpower",
+    "scale_mode": "fit_median",
+    "fixed_scale": 0.001,
+    "normalize": "band",
+    "arch": "cnn2d",
+    "head": "flatten",
+    "filters": [
+      8,
+      16
+    ],
+    "cnn_feat": 16,
+    "ann_hidden": [
+      32
+    ],
+    "dropout": 0.3,
+    "ann_input": "hybrid",
+    "train_mode": "e2e",
+    "loss": "huber",
+    "huber_delta": 1.0,
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "batch": 32,
+    "max_epochs": 200,
+    "patience": 25,
+    "noise_std": 0.3
+  },
+  "control_config": {
+    "name": "hybrid_nocnn",
+    "channels": "ret",
+    "window": 128,
+    "nperseg": 16,
+    "hop": 2,
+    "spec_type": "logpower",
+    "scale_mode": "fit_median",
+    "fixed_scale": 0.001,
+    "normalize": "band",
+    "arch": "cnn2d",
+    "head": "flatten",
+    "filters": [
+      8,
+      16
+    ],
+    "cnn_feat": 16,
+    "ann_hidden": [
+      32
+    ],
+    "dropout": 0.3,
+    "ann_input": "hybrid_nocnn",
+    "train_mode": "e2e",
+    "loss": "huber",
+    "huber_delta": 1.0,
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "batch": 32,
+    "max_epochs": 200,
+    "patience": 25,
+    "noise_std": 0.3
+  },
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "smoke": false
+}

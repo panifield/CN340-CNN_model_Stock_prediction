@@ -1,0 +1,7 @@
+# ไฟล์ชั่วคราว / cache ที่สร้างใหม่ได้ -- ไม่ commit (SPEC ข้อ 9.1)
+__pycache__/
+.pytest_cache/
+*.pt
+*.pkl
+# cache คำทำนายต่อ (config, หุ้น, fold, seed) -- ทำให้รันต่อได้ถ้าหยุดกลางทาง
+results/**/cache/

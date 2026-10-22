@@ -1,0 +1,62 @@
+{
+  "summary": {
+    "mean_n_factor_winners": 2.3333333333333335,
+    "mean_n_candidates_beating": 3.0,
+    "decision_primary": "base",
+    "decision_secondary": "base",
+    "primary_and_secondary_agree": true,
+    "b22_threshold": 0.05968380535234221,
+    "n_delta_values": 21,
+    "max_delta_per_shuffle": [
+      0.04362272337227831,
+      0.05968380535234221,
+      0.03988837383371416
+    ],
+    "mean_noise": 0.022461275988055644
+  },
+  "per_shuffle": [
+    {
+      "shuffle": 0,
+      "noise": 0.023428138833713013,
+      "base_IC": -0.006164895079885903,
+      "n_factor_winners": 2,
+      "n_candidates_beating": 2,
+      "max_delta_IC": 0.04362272337227831,
+      "winners": "type=complex, channel=ch4"
+    },
+    {
+      "shuffle": 1,
+      "noise": 0.021729395997278814,
+      "base_IC": -0.01456519767050557,
+      "n_factor_winners": 3,
+      "n_candidates_beating": 5,
+      "max_delta_IC": 0.05968380535234221,
+      "winners": "window=win256, type=complex, channel=ch4"
+    },
+    {
+      "shuffle": 2,
+      "noise": 0.022226293133175107,
+      "base_IC": -0.01759949895002356,
+      "n_factor_winners": 2,
+      "n_candidates_beating": 2,
+      "max_delta_IC": 0.03988837383371416,
+      "winners": "window=win64, channel=ch3"
+    }
+  ],
+  "stage1_reference": {
+    "noise": 0.02144609700335461,
+    "n_factor_winners": 3,
+    "delta": {
+      "win64": 0.0479738934360953,
+      "norm_global": 0.0433552706309208,
+      "ch3": 0.0428690573031388,
+      "ch4": 0.0350771129570465,
+      "norm_image": 0.026357544009623597,
+      "complex": 0.0199613489886535,
+      "detrend": 0.0143515965021674,
+      "win256": -0.0087629422977653
+    }
+  },
+  "consistent_with_c3_negative_control": true,
+  "smoke": false
+}

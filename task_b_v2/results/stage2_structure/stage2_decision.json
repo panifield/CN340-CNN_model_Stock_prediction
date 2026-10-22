@@ -1,0 +1,23 @@
+{
+  "status": "แนะนำเท่านั้น — หยุดที่ C4 รอผู้ใช้ยืนยัน",
+  "smoke": false,
+  "base": "base",
+  "noise_pooled": 0.013727541054650969,
+  "b22_floor": 0.0597,
+  "threshold_used": 0.0597,
+  "winners": {
+    "arch": "base",
+    "head": "base"
+  },
+  "combined_changes": {},
+  "combined_run": false,
+  "combined_loses_to_base": false,
+  "base_matches_c3": true,
+  "n_configs_logged": 13,
+  "comparator_cnn1d_raw_delta_ic": 0.036455093192857266,
+  "seeds": [
+    0,
+    1,
+    2
+  ]
+}

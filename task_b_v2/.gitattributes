@@ -1,0 +1,7 @@
+# legacy/ เป็น snapshot byte-for-byte จาก branch task_b (ดู legacy/SNAPSHOT.md)
+# ห้าม git แปลง CRLF/LF ของไฟล์ใด ๆ ใต้ legacy/ มิฉะนั้น SHA-256 ใน SNAPSHOT.md ไม่ตรง
+# (เครื่อง Windows ตั้ง core.autocrlf=true) · วางไว้นอก legacy/ เพื่อไม่แก้ legacy/.gitattributes ต้นฉบับ
+legacy/** -text
+# ไฟล์ข้อมูลราคามี SHA-256 กำกับใน data/SOURCES.md -- เก็บแบบ byte-for-byte
+data/*.csv -text
+data/intraday/** -text
