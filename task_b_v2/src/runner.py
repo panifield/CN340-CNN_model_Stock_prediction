@@ -104,21 +104,23 @@ def _worker(args):
     return run_unit(cfg, ticker, fold_k, seeds=seeds, zone_end=zone_end, cache_dir=cache_dir, tag=tag)
 
 
-def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, jobs=1, tag="", verbose=True):
+def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, jobs=1, tag="", verbose=True, units=None):
     """
     รันทุก config × ทุกหุ้น × ทุก fold · เขียนผลลง `stage_dir` แล้วคืน (evals, scores, predictions)
 
     jobs > 1 : แบ่ง unit ไปรันคนละ process (แต่ละ process ตั้ง thread = 1 เหมือนเดิม) — ผลเท่ากับรันทีละตัว
+    units    : (ไม่บังคับ) list ของ (ticker, fold) ที่จะรัน · None = ครบทุกหุ้น × ทุก fold (ใช้จริงทุก Stage)
+               ระบุเฉพาะตอน dry-run ตรวจสายงานของ Stage 6 (B38) — คะแนนรวมจะคิดจากจำนวน evaluation ที่รันจริง
     """
     stage = paths.assert_output_dir(stage_dir)
     stage.mkdir(parents=True, exist_ok=True)
     cache_dir = stage / "cache"
 
     folds_k = list(range(1, len(data.make_folds(data.build_dataset(TICKERS[0], zone_end).dates)) + 1))
-    tasks = [(cfg, t, k, tuple(seeds), zone_end, cache_dir, tag)
-             for cfg in configs for t in TICKERS for k in folds_k]
+    pairs = [(t, k) for t in TICKERS for k in folds_k] if units is None else list(units)
+    tasks = [(cfg, t, k, tuple(seeds), zone_end, cache_dir, tag) for cfg in configs for t, k in pairs]
     if verbose:
-        print(f"[runner] {len(configs)} config × {len(TICKERS)} หุ้น × {len(folds_k)} fold "
+        print(f"[runner] {len(configs)} config × {len(pairs)} evaluation "
               f"= {len(tasks)} unit · seeds {tuple(seeds)} · jobs {jobs}")
 
     results = []
@@ -142,7 +144,8 @@ def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, job
     preds = pd.concat([p for _, p, _ in results], ignore_index=True)
     histories = {f"{r['config']}|{r['ticker']}|fold{r['fold']}": h for r, _, h in results}
     scores = pd.DataFrame([{"config": cfg.name, **cfg.to_row(),
-                            **evaluate.score_config(evals[evals["config"] == cfg.name].to_dict("records"))}
+                            **evaluate.score_config(evals[evals["config"] == cfg.name].to_dict("records"),
+                                                    n_expected=len(pairs))}
                            for cfg in configs]).sort_values("mean_IC", ascending=False)      # เกณฑ์เลือก = IC (B16)
 
     evals.to_csv(stage / "evals.csv", index=False)

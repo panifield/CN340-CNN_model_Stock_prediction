@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-23 19:56",
+  "a8c_window_weights_ok": true,
+  "a8c_min_last_day_weight": 0.7080367007156915,
+  "a8c_max_last_day_weight": 0.7673419066472515,
+  "a8a_images_and_keys": {
+    "n_pairs": 9,
+    "one_shape_per_pair": true,
+    "pairs_have_distinct_shapes": true,
+    "unit_keys_unique_25": true,
+    "unit_keys_distinct_when_only_nperseg_hop_change": true,
+    "ok": true
+  },
+  "a8a_cache_isolation": {
+    "first_from_cache": false,
+    "second_from_cache": false,
+    "rerun_first_from_cache": true,
+    "image_scale_a": 1.8849341358873062e-05,
+    "image_scale_b": 5.789736860606354e-06,
+    "ok": true
+  },
+  "a8b_fit_statistics_ok": true,
+  "a8b_n_cases": 50,
+  "a5_shuffle_identical_across_configs": true,
+  "seconds": 38.4,
+  "all_ok": true
+}

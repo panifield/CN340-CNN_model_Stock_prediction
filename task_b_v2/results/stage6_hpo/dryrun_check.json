@@ -1,0 +1,38 @@
+{
+  "dryrun_at": "2026-10-23 20:04",
+  "configs": [
+    "base",
+    "hpo01"
+  ],
+  "units": [
+    [
+      "KBANK",
+      1
+    ]
+  ],
+  "placebo_shuffles": [
+    100
+  ],
+  "base_matches_stage3": true,
+  "files_written": [
+    "base_check.json",
+    "confirm\\evals.csv",
+    "confirm\\histories.json",
+    "confirm\\predictions.csv",
+    "confirm\\scores.csv",
+    "evals.csv",
+    "experiment_log.csv",
+    "histories.json",
+    "placebo\\evals.csv",
+    "predictions.csv",
+    "scores.csv",
+    "stage6_decision.json",
+    "stage6_ic_vs_placebo.png",
+    "stage6_summary.md",
+    "timing.json"
+  ],
+  "n_cache_files": 6,
+  "seconds": 192.2,
+  "verdict_has_winner_dryrun_only": false,
+  "note": "ตัวเลขของ dry-run ไม่ใช่ผลจริง · ไม่ใช้ตัดสิน"
+}

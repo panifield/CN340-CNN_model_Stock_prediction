@@ -50,11 +50,13 @@ def placebo_unit(args):
     prepared = data.fold_inputs(ds, cfg, fold)
     extra = train.standardized_extra(ds, prepared) if cfg.needs_features else None
     y_over = controls.shuffled_targets(prepared, shuffle_seed)          # เหมือน negative control ทุกประการ
-    pred, seed_preds = train.run_fold(cfg, prepared, seeds=seeds, extra=extra, y_override=y_over,
-                                      return_seed_preds=True)
+    pred, hists, seed_preds = train.run_fold(cfg, prepared, seeds=seeds, extra=extra, y_override=y_over,
+                                             return_hist=True, return_seed_preds=True)
     row = evaluate.evaluation_row("CNN-ANN-placebo", cfg.name, ticker, fold_k,
                                   prepared["y_eval"], pred, prepared["prev_close_eval"],
-                                  shuffle=shuffle_seed, seconds=round(time.time() - t0, 1), n_seeds=len(seeds))
+                                  shuffle=shuffle_seed, seconds=round(time.time() - t0, 1), n_seeds=len(seeds),
+                                  epochs_mean=float(np.mean([h["epochs"] for h in hists])),      # B2 (Stage 6): ธงชนเพดาน epoch
+                                  n_hit_cap=int(sum(not h["stopped_early"] for h in hists)))
     for k, sp in zip(seeds, seed_preds):                                  # IC รายseed → noise ของ seed (B17)
         m = evaluate.metrics(prepared["y_eval"], sp, prepared["prev_close_eval"])
         row[f"ic_s{k}"] = m["IC"]
@@ -68,17 +70,19 @@ def placebo_unit(args):
 
 
 def run_placebo(configs, stage_dir, *, shuffle_seeds=SHUFFLE_SEEDS, seeds=SEARCH_SEEDS, jobs=1,
-                zone_end=VAL_END, verbose=True):
-    """รัน placebo ทุก config × shuffle × หุ้น × fold → DataFrame (เขียน evals.csv ลง stage_dir ด้วย)"""
+                zone_end=VAL_END, verbose=True, units=None):
+    """รัน placebo ทุก config × shuffle × หุ้น × fold → DataFrame (เขียน evals.csv ลง stage_dir ด้วย)
+    units : (ไม่บังคับ) list ของ (ticker, fold) · None = ครบทุกหุ้น × ทุก fold · ใช้เฉพาะ dry-run ของ Stage 6 (B38)"""
     from src.settings import TICKERS
     stage = paths.assert_output_dir(stage_dir)
     stage.mkdir(parents=True, exist_ok=True)
     cache_dir = stage / "cache"
     n_folds = len(data.make_folds(data.build_dataset(TICKERS[0], zone_end).dates))
+    pairs = [(t, k) for t in TICKERS for k in range(1, n_folds + 1)] if units is None else list(units)
     tasks = [(cfg, t, k, s, tuple(seeds), zone_end, cache_dir)
-             for s in shuffle_seeds for cfg in configs for t in TICKERS for k in range(1, n_folds + 1)]
+             for s in shuffle_seeds for cfg in configs for t, k in pairs]
     if verbose:
-        print(f"[placebo] {len(configs)} config × {len(shuffle_seeds)} shuffle × {len(TICKERS)} หุ้น × {n_folds} fold "
+        print(f"[placebo] {len(configs)} config × {len(shuffle_seeds)} shuffle × {len(pairs)} evaluation "
               f"= {len(tasks)} unit · model seeds {tuple(seeds)} · jobs {jobs}")
     rows, t0 = [], time.time()
     if jobs > 1:

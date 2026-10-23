@@ -1,0 +1,153 @@
+{
+  "design_seed": 38,
+  "seed_first": 38,
+  "seed_used": 38,
+  "attempts": 1,
+  "redraws": 0,
+  "redraw_reasons": [],
+  "n_candidates": 24,
+  "n_configs_total": 25,
+  "grid": {
+    "lr": [
+      0.0003,
+      0.001,
+      0.003
+    ],
+    "batch": [
+      16,
+      32,
+      64
+    ],
+    "dropout": [
+      0.0,
+      0.3,
+      0.5
+    ],
+    "weight_decay": [
+      0.0001,
+      0.001,
+      0.01
+    ],
+    "filters": [
+      [
+        4,
+        8
+      ],
+      [
+        8,
+        16
+      ],
+      [
+        16,
+        32
+      ]
+    ],
+    "ann_hidden": [
+      [
+        16
+      ],
+      [
+        32
+      ],
+      [
+        64
+      ]
+    ],
+    "nperseg": [
+      8,
+      16,
+      32
+    ],
+    "hop": [
+      1,
+      2,
+      4
+    ],
+    "noise_std": [
+      0.0,
+      0.1,
+      0.3,
+      0.5
+    ]
+  },
+  "level_counts": {
+    "lr": {
+      "0.0003": 8,
+      "0.001": 8,
+      "0.003": 8
+    },
+    "batch": {
+      "16": 8,
+      "32": 8,
+      "64": 8
+    },
+    "dropout": {
+      "0.0": 8,
+      "0.3": 8,
+      "0.5": 8
+    },
+    "weight_decay": {
+      "0.0001": 8,
+      "0.001": 8,
+      "0.01": 8
+    },
+    "filters": {
+      "(4, 8)": 8,
+      "(8, 16)": 8,
+      "(16, 32)": 8
+    },
+    "ann_hidden": {
+      "(16,)": 8,
+      "(32,)": 8,
+      "(64,)": 8
+    },
+    "nperseg": {
+      "8": 8,
+      "16": 8,
+      "32": 8
+    },
+    "hop": {
+      "1": 8,
+      "2": 8,
+      "4": 8
+    },
+    "noise_std": {
+      "0.0": 6,
+      "0.1": 6,
+      "0.3": 6,
+      "0.5": 6
+    }
+  },
+  "placebo_shuffles": [
+    100,
+    101,
+    102,
+    103,
+    104
+  ],
+  "confirm_seeds": [
+    10,
+    11,
+    12
+  ],
+  "search_seeds": [
+    0,
+    1,
+    2
+  ],
+  "b22_floor": 0.0597,
+  "min_last_day_weight": 0.5,
+  "fixed": {
+    "channels": "ret",
+    "window": 128,
+    "spec_type": "logpower",
+    "normalize": "band",
+    "loss": "huber",
+    "huber_delta": 1.0,
+    "train_mode": "e2e",
+    "ann_input": "spec",
+    "max_epochs": 200,
+    "patience": 25,
+    "cnn_feat": 16
+  }
+}

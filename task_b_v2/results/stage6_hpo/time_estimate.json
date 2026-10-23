@@ -1,0 +1,294 @@
+{
+  "measured_at": "2026-10-23 19:58",
+  "assumed_epochs_per_run": 32.388888888888886,
+  "efficiency_jobs6": 4.6,
+  "unit_weight_vs_fold3_unit": 5.047732696897374,
+  "real_units": {
+    "base": {
+      "config": "base",
+      "seconds": 10.468301773071289,
+      "epochs": 33,
+      "best_epoch": 8,
+      "hit_cap": false
+    },
+    "slowest": {
+      "config": "hpo21",
+      "seconds": 49.436710596084595,
+      "epochs": 26,
+      "best_epoch": 1,
+      "hit_cap": false
+    }
+  },
+  "grid_worst_case": {
+    "t_prep_s": 0.31946444511413574,
+    "t_epoch_s": 1.9154671827952068
+  },
+  "serial_minutes": {
+    "search_central": 108.4890638399475,
+    "search_pessimistic_e1.5": 162.48740672151197,
+    "confirm_central": 31.517180813383085,
+    "confirm_pessimistic": 47.24821739898092
+  },
+  "wall_hours": {
+    "central_5rounds": 2.472650593670537,
+    "central_3rounds": 1.6864979571491783,
+    "pessimistic_e1.5_5rounds": 3.70352412220309,
+    "pessimistic_e1.5_3rounds": 2.52607914596025,
+    "upper_bound_all_as_slow_as_slowest_5rounds": 8.167804359353108
+  },
+  "limit_hours": 7.0,
+  "rule": "central ≤ 7 ชม. → 5 รอบ · เกิน → 3 รอบ (A5) · pessimistic = epoch ที่หยุดจริง ×1.5 เทียบ base",
+  "placebo_rounds_decided": 5,
+  "per_config": [
+    {
+      "name": "base",
+      "image_shape": "1x9x65",
+      "batch": 32,
+      "n_params": 10081,
+      "t_prep_s": 0.218,
+      "t_epoch_s": 0.714,
+      "cost_unit_s": 69.604,
+      "serial_min_search": 5.856
+    },
+    {
+      "name": "hpo01",
+      "image_shape": "1x17x129",
+      "batch": 32,
+      "n_params": 34369,
+      "t_prep_s": 0.315,
+      "t_epoch_s": 1.011,
+      "cost_unit_s": 98.582,
+      "serial_min_search": 8.294
+    },
+    {
+      "name": "hpo02",
+      "image_shape": "1x5x33",
+      "batch": 16,
+      "n_params": 1977,
+      "t_prep_s": 0.181,
+      "t_epoch_s": 0.181,
+      "cost_unit_s": 17.746,
+      "serial_min_search": 1.493
+    },
+    {
+      "name": "hpo03",
+      "image_shape": "1x5x65",
+      "batch": 64,
+      "n_params": 2713,
+      "t_prep_s": 0.201,
+      "t_epoch_s": 0.113,
+      "cost_unit_s": 11.189,
+      "serial_min_search": 0.941
+    },
+    {
+      "name": "hpo04",
+      "image_shape": "1x5x129",
+      "batch": 16,
+      "n_params": 21585,
+      "t_prep_s": 0.245,
+      "t_epoch_s": 0.613,
+      "cost_unit_s": 59.766,
+      "serial_min_search": 5.028
+    },
+    {
+      "name": "hpo05",
+      "image_shape": "1x9x129",
+      "batch": 32,
+      "n_params": 37969,
+      "t_prep_s": 0.254,
+      "t_epoch_s": 1.033,
+      "cost_unit_s": 100.636,
+      "serial_min_search": 8.466
+    },
+    {
+      "name": "hpo06",
+      "image_shape": "1x5x33",
+      "batch": 32,
+      "n_params": 1977,
+      "t_prep_s": 0.194,
+      "t_epoch_s": 0.115,
+      "cost_unit_s": 11.366,
+      "serial_min_search": 0.956
+    },
+    {
+      "name": "hpo07",
+      "image_shape": "1x9x33",
+      "batch": 16,
+      "n_params": 3577,
+      "t_prep_s": 0.198,
+      "t_epoch_s": 0.209,
+      "cost_unit_s": 20.489,
+      "serial_min_search": 1.724
+    },
+    {
+      "name": "hpo08",
+      "image_shape": "1x17x33",
+      "batch": 64,
+      "n_params": 10081,
+      "t_prep_s": 0.206,
+      "t_epoch_s": 0.293,
+      "cost_unit_s": 28.703,
+      "serial_min_search": 2.415
+    },
+    {
+      "name": "hpo09",
+      "image_shape": "1x17x65",
+      "batch": 16,
+      "n_params": 18849,
+      "t_prep_s": 0.251,
+      "t_epoch_s": 0.607,
+      "cost_unit_s": 59.195,
+      "serial_min_search": 4.98
+    },
+    {
+      "name": "hpo10",
+      "image_shape": "1x9x33",
+      "batch": 16,
+      "n_params": 2713,
+      "t_prep_s": 0.205,
+      "t_epoch_s": 0.216,
+      "cost_unit_s": 21.149,
+      "serial_min_search": 1.779
+    },
+    {
+      "name": "hpo11",
+      "image_shape": "1x17x33",
+      "batch": 16,
+      "n_params": 22449,
+      "t_prep_s": 0.217,
+      "t_epoch_s": 0.645,
+      "cost_unit_s": 62.931,
+      "serial_min_search": 5.294
+    },
+    {
+      "name": "hpo12",
+      "image_shape": "1x9x65",
+      "batch": 64,
+      "n_params": 22449,
+      "t_prep_s": 0.226,
+      "t_epoch_s": 0.555,
+      "cost_unit_s": 54.15,
+      "serial_min_search": 4.556
+    },
+    {
+      "name": "hpo13",
+      "image_shape": "1x9x129",
+      "batch": 32,
+      "n_params": 17985,
+      "t_prep_s": 0.285,
+      "t_epoch_s": 0.54,
+      "cost_unit_s": 52.773,
+      "serial_min_search": 4.44
+    },
+    {
+      "name": "hpo14",
+      "image_shape": "1x17x129",
+      "batch": 16,
+      "n_params": 17337,
+      "t_prep_s": 0.311,
+      "t_epoch_s": 0.587,
+      "cost_unit_s": 57.354,
+      "serial_min_search": 4.825
+    },
+    {
+      "name": "hpo15",
+      "image_shape": "1x5x33",
+      "batch": 32,
+      "n_params": 2553,
+      "t_prep_s": 0.177,
+      "t_epoch_s": 0.104,
+      "cost_unit_s": 10.239,
+      "serial_min_search": 0.861
+    },
+    {
+      "name": "hpo16",
+      "image_shape": "1x5x65",
+      "batch": 64,
+      "n_params": 3001,
+      "t_prep_s": 0.196,
+      "t_epoch_s": 0.116,
+      "cost_unit_s": 11.45,
+      "serial_min_search": 0.963
+    },
+    {
+      "name": "hpo17",
+      "image_shape": "1x9x65",
+      "batch": 64,
+      "n_params": 10081,
+      "t_prep_s": 0.221,
+      "t_epoch_s": 0.291,
+      "cost_unit_s": 28.539,
+      "serial_min_search": 2.401
+    },
+    {
+      "name": "hpo18",
+      "image_shape": "1x9x33",
+      "batch": 16,
+      "n_params": 14257,
+      "t_prep_s": 0.193,
+      "t_epoch_s": 0.409,
+      "cost_unit_s": 39.942,
+      "serial_min_search": 3.36
+    },
+    {
+      "name": "hpo19",
+      "image_shape": "1x5x65",
+      "batch": 32,
+      "n_params": 13393,
+      "t_prep_s": 0.198,
+      "t_epoch_s": 0.351,
+      "cost_unit_s": 34.28,
+      "serial_min_search": 2.884
+    },
+    {
+      "name": "hpo20",
+      "image_shape": "1x5x65",
+      "batch": 64,
+      "n_params": 5985,
+      "t_prep_s": 0.189,
+      "t_epoch_s": 0.165,
+      "cost_unit_s": 16.191,
+      "serial_min_search": 1.362
+    },
+    {
+      "name": "hpo21",
+      "image_shape": "1x17x129",
+      "batch": 64,
+      "n_params": 71601,
+      "t_prep_s": 0.328,
+      "t_epoch_s": 1.924,
+      "cost_unit_s": 187.315,
+      "serial_min_search": 15.759
+    },
+    {
+      "name": "hpo22",
+      "image_shape": "1x9x129",
+      "batch": 32,
+      "n_params": 37969,
+      "t_prep_s": 0.266,
+      "t_epoch_s": 0.997,
+      "cost_unit_s": 97.142,
+      "serial_min_search": 8.172
+    },
+    {
+      "name": "hpo23",
+      "image_shape": "1x17x129",
+      "batch": 32,
+      "n_params": 34657,
+      "t_prep_s": 0.325,
+      "t_epoch_s": 0.918,
+      "cost_unit_s": 89.479,
+      "serial_min_search": 7.528
+    },
+    {
+      "name": "hpo24",
+      "image_shape": "1x17x65",
+      "batch": 64,
+      "n_params": 18849,
+      "t_prep_s": 0.254,
+      "t_epoch_s": 0.505,
+      "cost_unit_s": 49.348,
+      "serial_min_search": 4.152
+    }
+  ]
+}
