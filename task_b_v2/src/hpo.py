@@ -243,6 +243,38 @@ def per_eval_check(evals, top, base, thr3):
             "c3": bool(n_pos >= n - 1 and np.isfinite(mean_trim) and mean_trim > thr3)}
 
 
+def collapse_counts(evals):
+    """
+    B39 : จำนวน run ที่คำทำนายคงที่ (IC := 0) ต่อ config · ต้องรันด้วย const_ic_zero (มีคอลัมน์ collapsed และ collapsed_s*)
+    คืน DataFrame ดัชนี = config · คอลัมน์ seed_runs / seed_runs_total (ระดับ seed เดี่ยว) และ evals / evals_total (ระดับ evaluation หลังเฉลี่ย seed)
+    """
+    seed_cols = [c for c in evals.columns if c.startswith("collapsed_s") and c[11:].isdigit()]
+    if "collapsed" not in evals.columns or not seed_cols:
+        raise RuntimeError("ไม่มีคอลัมน์ collapsed — ต้องรันด้วย const_ic_zero=True (B39)")
+    rows = {}
+    for name, d in evals.groupby("config", sort=False):
+        flags = d[seed_cols].astype(bool).to_numpy()
+        rows[name] = {"seed_runs": int(flags.sum()), "seed_runs_total": int(flags.size),
+                      "evals": int(d["collapsed"].astype(bool).sum()), "evals_total": int(len(d))}
+    return pd.DataFrame.from_dict(rows, orient="index")
+
+
+def common_levels(table, total_by_config, top_k=5, exclude=("base",)):
+    """
+    descriptive (B39 ข้อ 3): config ที่ collapse บ่อยที่สุด top_k ตัว (นับรวม ที่ count > 0) มีระดับของพารามิเตอร์อะไรซ้ำกัน
+    คืน (DataFrame param · ระดับที่พบมากที่สุด · จำนวนที่พบ · จาก k ตัว, รายชื่อ config ที่ใช้)
+    """
+    t = table[~table["name"].isin(exclude)].set_index("name")
+    s = total_by_config.drop(labels=[n for n in exclude if n in total_by_config.index]).sort_values(ascending=False, kind="stable")
+    top = [n for n in s.index[:top_k] if s[n] > 0]
+    rows = []
+    for p in GRID:
+        vc = t.loc[top, p].astype(str).value_counts() if top else pd.Series(dtype=int)
+        rows.append({"param": p, "ระดับที่พบมากสุด": vc.index[0] if len(vc) else "—",
+                     "พบใน": f"{int(vc.iloc[0]) if len(vc) else 0}/{len(top)}"})
+    return pd.DataFrame(rows), top
+
+
 def epoch_cap_counts(histories):
     """
     B2 : จำนวน run (หน่วย = หนึ่ง unit × หนึ่ง seed) ที่หยุดเพราะชนเพดาน max_epochs ไม่ใช่ early stopping

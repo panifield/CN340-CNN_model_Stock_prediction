@@ -23,6 +23,8 @@ from scipy.stats import binomtest, norm, spearmanr
 
 from src.settings import GUARD_MIN_STDRATIO, N_FOLDS
 
+CONST_PRED_RATIO = 1e-8      # B39: std(ŷ)/std(y) ต่ำกว่านี้ (หรือ ptp(ŷ) = 0) = "คำทำนายคงที่" → IC นิยามไม่ได้
+
 METRIC_COLS = ["MAE_baht", "RMSE_baht", "relMAE", "relMAE_baht", "MAE_return", "RMSE_return",
                "R2_OOS", "DirAcc", "IC", "IC_spearman", "StdRatio", "Bias", "naive_MAE_return", "n"]
 
@@ -37,10 +39,24 @@ def mean_return_prediction(y_train, n_eval):
     return np.full(n_eval, float(np.mean(y_train)))
 
 
-def metrics(y, pred, prev_close):
+def is_constant_prediction(y, pred):
+    """B39: คำทำนายคงที่ = ptp(ŷ) = 0 หรือ std(ŷ)/std(y) < CONST_PRED_RATIO (ต่างกันแค่เศษปัดเศษก็นับ)"""
+    pred = np.asarray(pred, dtype=float)
+    y = np.asarray(y, dtype=float)
+    if np.ptp(pred) == 0:
+        return True
+    sy = float(np.std(y))
+    return bool(sy > 0 and float(np.std(pred)) / sy < CONST_PRED_RATIO)
+
+
+def metrics(y, pred, prev_close, const_ic_zero=False):
     """
     หนึ่ง evaluation → dict ของตัววัดทุกตัว
     y, pred เป็น "return" · prev_close ใช้แปลงเป็นบาท : ราคา = prev_close · (1 + return)
+
+    const_ic_zero (เฉพาะ Stage 6 · DECISIONS B39 · ค่าเริ่มต้นปิด = พฤติกรรมเดิมทุกประการ):
+        ถ้าคำทำนายคงที่ (is_constant_prediction) → IC Pearson = IC Spearman := 0 แทน NaN · เพิ่มคอลัมน์ `collapsed`
+        (ไม่แตะตัววัดอื่น เช่น relMAE · StdRatio)
     """
     y = np.asarray(y, dtype=float)
     pred = np.asarray(pred, dtype=float)
@@ -57,7 +73,7 @@ def metrics(y, pred, prev_close):
 
     moved = y != 0                               # วันที่ราคาไม่เปลี่ยนไม่นับในความแม่นของทิศทาง
     varies = np.ptp(y) > 0 and np.ptp(pred) > 0
-    return {
+    out = {
         "pred_finite": True, "n": len(y),
         "MAE_baht": float(np.mean(np.abs(err_baht))),
         "RMSE_baht": float(np.sqrt(np.mean(err_baht ** 2))),
@@ -73,11 +89,17 @@ def metrics(y, pred, prev_close):
         "Bias": float(np.mean(err)),
         "naive_MAE_return": naive_mae,
     }
+    if const_ic_zero:
+        out["collapsed"] = is_constant_prediction(y, pred)
+        if out["collapsed"]:
+            out["IC"] = 0.0
+            out["IC_spearman"] = 0.0
+    return out
 
 
-def evaluation_row(model, cfg_name, ticker, fold_k, y, pred, prev_close, **tags):
+def evaluation_row(model, cfg_name, ticker, fold_k, y, pred, prev_close, *, const_ic_zero=False, **tags):
     return {"model": model, "config": cfg_name, "ticker": ticker, "fold": fold_k,
-            **tags, **metrics(y, pred, prev_close)}
+            **tags, **metrics(y, pred, prev_close, const_ic_zero=const_ic_zero)}
 
 
 def score_config(evals, n_expected=2 * N_FOLDS):
@@ -108,6 +130,10 @@ def score_config(evals, n_expected=2 * N_FOLDS):
               "DirAcc", "IC", "IC_spearman", "StdRatio"):
         out[f"mean_{c}"] = float(g[c].mean())
     out["min_StdRatio"] = float(np.nanmin(sr)) if np.isfinite(sr).any() else np.nan
+    if "collapsed" in g.columns:                                          # B39 (Stage 6): จำนวนคำทำนายคงที่ (IC := 0)
+        out["n_collapsed_evals"] = int(g["collapsed"].astype(bool).sum())
+        cs = [c for c in g.columns if c.startswith("collapsed_s") and c[11:].isdigit()]
+        out["n_collapsed_seed_runs"] = int(sum(g[c].astype(bool).sum() for c in cs))
     if "relMAE_shrunk" in g.columns:                                      # หลังปรับขนาดด้วย c (B18 · รายงานเพิ่ม ไม่ใช้เลือก)
         out["mean_relMAE_shrunk"] = float(g["relMAE_shrunk"].mean())
         out["mean_relMAE_baht_shrunk"] = float(g["relMAE_baht_shrunk"].mean())

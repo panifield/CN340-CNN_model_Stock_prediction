@@ -293,3 +293,187 @@ def test_epoch_cap_counts_and_level_means():
     assert lv["n_config"].groupby(lv["param"]).sum().eq(24).all()          # แต่ละปัจจัยครอบ 24 ผู้สมัครพอดี (ไม่นับ base)
     for p, grp in lv.groupby("param", sort=False):                         # ค่าเฉลี่ยถ่วงน้ำหนักของระดับ = ค่าเฉลี่ยรวมของ 24 ผู้สมัคร
         assert np.average(grp["mean_IC"], weights=grp["n_config"]) == pytest.approx(np.mean([float(i) for i in range(1, 25)]))
+
+
+# ---------------------------------------------------------------
+# 4. B39 — คำทำนายคงที่ → IC := 0 (เฉพาะ Stage 6 · ค่าเริ่มต้นปิด)
+# ---------------------------------------------------------------
+from src import evaluate, placebo                                      # noqa: E402
+
+RNG = np.random.default_rng(5)
+Y = RNG.normal(0, 0.01, 200)
+PREV = np.full(200, 100.0)
+
+
+def test_default_metrics_are_unchanged_for_constant_predictions():
+    m = evaluate.metrics(Y, np.full(200, 0.001), PREV)
+    assert np.isnan(m["IC"]) and np.isnan(m["IC_spearman"]) and "collapsed" not in m
+
+
+@pytest.mark.parametrize("pred", [np.full(200, 0.001),                              # ptp = 0
+                                  np.full(200, 0.001) + 1e-20 * RNG.normal(size=200),  # ต่างกันแค่เศษปัดเศษ (StdRatio ~ 1e-18)
+                                  np.zeros(200)])
+def test_constant_prediction_gets_ic_zero_with_flag(pred):
+    m = evaluate.metrics(Y, pred, PREV, const_ic_zero=True)
+    assert m["collapsed"] is True and m["IC"] == 0.0 and m["IC_spearman"] == 0.0
+    assert np.isfinite(m["relMAE"]) and m["StdRatio"] < 1e-8                        # ตัววัดอื่นไม่ถูกแตะ
+
+
+def test_varying_prediction_is_not_collapsed_and_ic_is_unchanged():
+    pred = 0.3 * Y + RNG.normal(0, 0.01, 200)
+    a, b = evaluate.metrics(Y, pred, PREV), evaluate.metrics(Y, pred, PREV, const_ic_zero=True)
+    assert b["collapsed"] is False and a["IC"] == b["IC"] and a["IC_spearman"] == b["IC_spearman"] and a["IC"] != 0
+    # ขอบของ tolerance: อัตราส่วน 2e-8 (> 1e-8) ยังไม่ถือว่าคงที่ · 5e-9 (< 1e-8) ถือว่าคงที่
+    base = np.full(200, 0.001)
+    above = base + 2e-8 * np.std(Y) * (Y - Y.mean()) / np.std(Y)
+    below = base + 5e-9 * np.std(Y) * (Y - Y.mean()) / np.std(Y)
+    assert evaluate.metrics(Y, above, PREV, const_ic_zero=True)["collapsed"] is False
+    assert evaluate.metrics(Y, below, PREV, const_ic_zero=True)["collapsed"] is True
+
+
+def test_naive_zero_prediction_still_works_when_flag_off():
+    assert evaluate.metrics(Y, np.zeros(200), PREV)["relMAE"] == pytest.approx(1.0)
+
+
+def collapsed_evals(flags_by_eval):
+    """flags_by_eval: list (6) ของ (collapsed ระดับ evaluation, [collapsed ต่อ seed 0..2])"""
+    rows = []
+    for i, (c, seeds) in enumerate(flags_by_eval):
+        rows.append({"config": "x", "ticker": "KBANK" if i < 3 else "ADVANC", "fold": i % 3 + 1, "collapsed": c,
+                     **{f"collapsed_s{k}": s for k, s in enumerate(seeds)}})
+    return pd.DataFrame(rows)
+
+
+def test_collapse_counts_by_config_and_level():
+    ev = pd.concat([collapsed_evals([(True, [True] * 3), (False, [True, False, False])] + [(False, [False] * 3)] * 4),
+                    collapsed_evals([(False, [False] * 3)] * 6).assign(config="y")], ignore_index=True)
+    c = hpo.collapse_counts(ev)
+    assert c.loc["x"].to_dict() == {"seed_runs": 4, "seed_runs_total": 18, "evals": 1, "evals_total": 6}
+    assert c.loc["y"].to_dict() == {"seed_runs": 0, "seed_runs_total": 18, "evals": 0, "evals_total": 6}
+    with pytest.raises(RuntimeError):                                              # ไม่ได้รันด้วย flag → หยุด ไม่เดา
+        hpo.collapse_counts(ev.drop(columns=["collapsed"]))
+
+
+def test_common_levels_finds_shared_parameter_values():
+    table = hpo.configs_table(hpo.design_configs()[0])
+    t = table.set_index("name")
+    share = [n for n in CANDS if str(t.loc[n, "weight_decay"]) == "0.01"][:3]       # สมมุติ 3 ตัวนี้ collapse (ล้วน wd 1e-2)
+    total = pd.Series({n: 0 for n in NAMES}, dtype=float)
+    for n in share:
+        total[n] = 10
+    common, top = hpo.common_levels(table, total, top_k=5)
+    assert sorted(top) == sorted(share)                                            # ตัวที่ count = 0 ไม่ถูกนับเป็น "collapse บ่อย"
+    assert common.set_index("param").loc["weight_decay", "พบใน"] == f"{len(share)}/{len(share)}"
+
+
+def test_score_config_counts_collapse_only_when_columns_exist():
+    from src.evaluate import score_config
+    rows = []
+    for i in range(6):
+        rows.append({"pred_finite": True, "relMAE": 1.0, "StdRatio": 0.1, "IC": 0.0 if i == 0 else 0.02, "IC_spearman": 0.0,
+                     "relMAE_baht": 1.0, "MAE_baht": 1.0, "RMSE_baht": 1.0, "MAE_return": 0.01, "R2_OOS": 0.0, "DirAcc": 0.5,
+                     "ic_s0": 0.0, "ic_s1": 0.02, "ic_s2": 0.02, "collapsed": i == 0,
+                     "collapsed_s0": i == 0, "collapsed_s1": False, "collapsed_s2": i < 2})
+    s = score_config(rows)
+    assert s["n_collapsed_evals"] == 1 and s["n_collapsed_seed_runs"] == 3
+    for r in rows:
+        r.pop("collapsed"), r.pop("collapsed_s0"), r.pop("collapsed_s1"), r.pop("collapsed_s2")
+    assert "n_collapsed_evals" not in score_config(rows)                           # ไม่มีคอลัมน์ = ผลเหมือนเดิมทุกประการ
+
+
+BASE_COLS = run_stage6.BASE_CHECK_COLS
+
+
+def base_rows(override=None):
+    rows = []
+    for t, k in (("KBANK", 1), ("KBANK", 2)):
+        r = {"config": "base", "ticker": t, "fold": k, **{c: 0.5 + k for c in BASE_COLS}}
+        r["IC_shrunk"] = np.nan if k == 2 else 0.1                                 # c = 0 → NaN ทั้งสองฝั่ง (ที่มาของบั๊กเดิม)
+        rows.append(r)
+    df = pd.DataFrame(rows)
+    for (idx, col), v in (override or {}).items():
+        df.loc[idx, col] = v
+    return df
+
+
+def test_base_check_treats_nan_equal_to_nan_but_not_to_finite(tmp_path):
+    ref = tmp_path / "ref.csv"
+    base_rows().to_csv(ref, index=False)
+    ok, d = run_stage6.check_base_matches_stage3(base_rows(), ref_path=ref)
+    assert ok and max(d.values()) == 0.0                                           # NaN = NaN (เดิมรายงานว่าไม่ตรง)
+    ok, d = run_stage6.check_base_matches_stage3(base_rows({(1, "IC_shrunk"): 0.2}), ref_path=ref)
+    assert not ok and d["IC_shrunk"] == np.inf                                     # NaN vs finite = ไม่ตรง
+    ok, d = run_stage6.check_base_matches_stage3(base_rows({(0, "IC"): 1.5 + 1e-12}), ref_path=ref)
+    assert not ok and d["IC"] > 0                                                  # ต่างแม้เศษเดียว = ไม่ตรง
+
+
+@pytest.mark.slow
+def test_flag_is_plumbed_through_run_unit_and_placebo_unit(tmp_path):
+    tiny = replace(BASE, name="tiny", max_epochs=3, patience=3)
+    off, _, _ = runner.run_unit(tiny, "KBANK", 3, seeds=(0, 1), cache_dir=tmp_path)
+    on, _, _ = runner.run_unit(tiny, "KBANK", 3, seeds=(0, 1), cache_dir=tmp_path, const_ic_zero=True)
+    assert off["from_cache"] is False and on["from_cache"] is False                # คีย์ cache ของสองแบบต่างกัน
+    assert "collapsed" not in off and {"collapsed", "collapsed_s0", "collapsed_s1"} <= set(on)
+    if not on["collapsed"]:
+        assert on["IC"] == off["IC"]                                               # ไม่ collapse → ผลเท่าเดิมทุกบิต
+    p_off = placebo.placebo_unit((tiny, "KBANK", 3, 0, (0, 1), "2025-02-25", None))
+    p_on = placebo.placebo_unit((tiny, "KBANK", 3, 0, (0, 1), "2025-02-25", None, True))
+    assert "collapsed" not in p_off and {"collapsed", "collapsed_s0", "collapsed_s1"} <= set(p_on)
+
+
+# ---------------------------------------------------------------
+# 5. รายงานต้อง render ได้กับ 25 config จริง (ไม่ให้พังหลังรันเสร็จ 2.5 ชม.)
+# ---------------------------------------------------------------
+def synthetic_ctx(tmp_path, monkeypatch, n_rounds=5):
+    rng = np.random.default_rng(1)
+    configs = hpo.design_configs()[0]
+    shuffles = tuple(range(100, 100 + n_rounds))
+
+    def eval_rows(cfg, seeds, shuffle=None, collapse_p=0.1):
+        out = []
+        for t in ("KBANK", "ADVANC"):
+            for k in (1, 2, 3):
+                col = rng.random(len(seeds)) < collapse_p
+                ics = np.where(col, 0.0, rng.normal(0, 0.03, len(seeds)))
+                row = {"model": "m", "config": cfg.name, "ticker": t, "fold": k, "pred_finite": True, "n": 266, "relMAE": 1.0 + rng.normal(0, 0.003),
+                       "relMAE_baht": 1.0, "MAE_baht": 1.0, "RMSE_baht": 1.0, "MAE_return": 0.01, "R2_OOS": 0.0, "DirAcc": 0.5,
+                       "IC": float(ics.mean()), "IC_spearman": 0.0, "StdRatio": 0.02, "seconds": 5.0, "collapsed": bool(col.all()),
+                       "c_chosen": 0.1, "relMAE_shrunk": 1.0, "relMAE_baht_shrunk": 1.0, "MAE_baht_shrunk": 1.0,
+                       **{f"ic_s{s}": float(v) for s, v in zip(seeds, ics)}, **{f"collapsed_s{s}": bool(c) for s, c in zip(seeds, col)}}
+                if shuffle is not None:
+                    row.update(shuffle=shuffle, n_hit_cap=0, epochs_mean=30.0)
+                out.append(row)
+        return out
+
+    def score(cfgs, seeds):
+        ev = pd.DataFrame([r for c in cfgs for r in eval_rows(c, seeds)])
+        sc = pd.DataFrame([{"config": c.name, **evaluate.score_config(ev[ev["config"] == c.name].to_dict("records"))} for c in cfgs])
+        return ev, sc
+
+    ev, sc = score(configs, (0, 1, 2))
+    ev_p = pd.DataFrame([r for s in shuffles for c in configs for r in eval_rows(c, (0, 1, 2), shuffle=s, collapse_p=0.3)])
+    top = str(sc[sc["config"] != "base"].sort_values("mean_IC").iloc[-1]["config"])
+    c_ev, c_sc = score([BASE, next(c for c in configs if c.name == top)], (10, 11, 12))
+    hist = {f"{c.name}|{t}|fold{k}": [{"stopped_early": True}] * 3 for c in configs for t in ("KBANK", "ADVANC") for k in (1, 2, 3)}
+    ps = hpo.placebo_stats(ev_p, [c.name for c in configs])
+    noise = float(np.sqrt(np.nanmean(sc["ic_seed_std"].to_numpy(float) ** 2)))
+    judge = hpo.judge_winner(sc, ev, c_sc, c_ev, noise, ps["t_hpo"])
+    monkeypatch.setattr(runner, "EXPERIMENT_LOG", tmp_path / "experiment_log.csv")
+    return {"configs": configs, "table": hpo.configs_table(configs), "scores": sc, "evals": ev, "histories": hist, "ev_p": ev_p, "pstat": ps,
+            "c_scores": c_sc, "c_evals": c_ev, "c_hist": hist, "judge": judge, "noise": noise, "shuffles": shuffles, "smoke": False,
+            "units": None, "out": tmp_path,
+            "timing": {"search_wall_min": 1.0, "placebo_wall_min": 2.0, "confirm_wall_min": 0.5}}
+
+
+def test_full_report_renders_with_25_configs(tmp_path, monkeypatch):
+    ctx = synthetic_ctx(tmp_path, monkeypatch)
+    run_stage6.write_report(ctx)
+    md = (tmp_path / "stage6_summary.md").read_text(encoding="utf-8")
+    for section in ("## 1.", "## 2.", "## 3.", "## 4.", "## 5.", "## 6.", "## 7. Collapse", "### 7.1", "### 7.2", "### 7.3"):
+        assert section in md, section
+    assert "[บังคับ]" in md and md.count("hpo24") >= 2 and "T_hpo" in md
+    assert (tmp_path / "stage6_ic_vs_placebo.png").stat().st_size > 5000
+    csv = pd.read_csv(tmp_path / "collapse_by_config.csv")
+    assert len(csv) == 25 and csv["search_seed_runs_total"].eq(18).all() and csv["placebo_seed_runs_total"].eq(90).all()
+    dec = json.loads((tmp_path / "stage6_decision.json").read_text(encoding="utf-8"))
+    assert dec["const_ic_zero"] is True and dec["collapse"]["search"]["seed_runs_total"] == 450 and dec["collapse"]["placebo"]["seed_runs_total"] == 2250

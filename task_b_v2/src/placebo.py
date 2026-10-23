@@ -35,8 +35,10 @@ def placebo_unit(args):
     หนึ่ง unit ของ placebo : (config, หุ้น, fold, shuffle) → แถวผล (มี IC รวมและ IC รายseed)
     ต้องเป็นฟังก์ชันระดับบนสุดเพื่อให้ ProcessPoolExecutor pickle ได้ · ผลถูก cache ตามลายนิ้วมือของ unit
     """
-    cfg, ticker, fold_k, shuffle_seed, seeds, zone_end, cache_dir = args
-    key = runner.unit_key(cfg, ticker, fold_k, seeds, zone_end, tag=f"placebo-shuffle{shuffle_seed}")
+    cfg, ticker, fold_k, shuffle_seed, seeds, zone_end, cache_dir, *rest = args
+    const_ic_zero = bool(rest[0]) if rest else False                     # เฉพาะ Stage 6 (B39) · ค่าเริ่มต้นปิด
+    key = runner.unit_key(cfg, ticker, fold_k, seeds, zone_end,
+                          tag=f"placebo-shuffle{shuffle_seed}" + ("|const_ic0" if const_ic_zero else ""))
     cache = None if cache_dir is None else cache_dir / f"{key}.pkl"
     if cache is not None and cache.exists():
         with open(cache, "rb") as f:
@@ -53,14 +55,16 @@ def placebo_unit(args):
     pred, hists, seed_preds = train.run_fold(cfg, prepared, seeds=seeds, extra=extra, y_override=y_over,
                                              return_hist=True, return_seed_preds=True)
     row = evaluate.evaluation_row("CNN-ANN-placebo", cfg.name, ticker, fold_k,
-                                  prepared["y_eval"], pred, prepared["prev_close_eval"],
+                                  prepared["y_eval"], pred, prepared["prev_close_eval"], const_ic_zero=const_ic_zero,
                                   shuffle=shuffle_seed, seconds=round(time.time() - t0, 1), n_seeds=len(seeds),
                                   epochs_mean=float(np.mean([h["epochs"] for h in hists])),      # B2 (Stage 6): ธงชนเพดาน epoch
                                   n_hit_cap=int(sum(not h["stopped_early"] for h in hists)))
     for k, sp in zip(seeds, seed_preds):                                  # IC รายseed → noise ของ seed (B17)
-        m = evaluate.metrics(prepared["y_eval"], sp, prepared["prev_close_eval"])
+        m = evaluate.metrics(prepared["y_eval"], sp, prepared["prev_close_eval"], const_ic_zero=const_ic_zero)
         row[f"ic_s{k}"] = m["IC"]
         row[f"relMAE_s{k}"] = m["relMAE"]
+        if const_ic_zero:
+            row[f"collapsed_s{k}"] = m["collapsed"]
     row["from_cache"] = False
     if cache is not None:
         cache.parent.mkdir(parents=True, exist_ok=True)
@@ -70,16 +74,17 @@ def placebo_unit(args):
 
 
 def run_placebo(configs, stage_dir, *, shuffle_seeds=SHUFFLE_SEEDS, seeds=SEARCH_SEEDS, jobs=1,
-                zone_end=VAL_END, verbose=True, units=None):
+                zone_end=VAL_END, verbose=True, units=None, const_ic_zero=False):
     """รัน placebo ทุก config × shuffle × หุ้น × fold → DataFrame (เขียน evals.csv ลง stage_dir ด้วย)
-    units : (ไม่บังคับ) list ของ (ticker, fold) · None = ครบทุกหุ้น × ทุก fold · ใช้เฉพาะ dry-run ของ Stage 6 (B38)"""
+    units : (ไม่บังคับ) list ของ (ticker, fold) · None = ครบทุกหุ้น × ทุก fold · ใช้เฉพาะ dry-run ของ Stage 6 (B38)
+    const_ic_zero : เฉพาะ Stage 6 (B39) — คำทำนายคงที่ → IC := 0 · ค่าเริ่มต้นปิด"""
     from src.settings import TICKERS
     stage = paths.assert_output_dir(stage_dir)
     stage.mkdir(parents=True, exist_ok=True)
     cache_dir = stage / "cache"
     n_folds = len(data.make_folds(data.build_dataset(TICKERS[0], zone_end).dates))
     pairs = [(t, k) for t in TICKERS for k in range(1, n_folds + 1)] if units is None else list(units)
-    tasks = [(cfg, t, k, s, tuple(seeds), zone_end, cache_dir)
+    tasks = [(cfg, t, k, s, tuple(seeds), zone_end, cache_dir, const_ic_zero)
              for s in shuffle_seeds for cfg in configs for t, k in pairs]
     if verbose:
         print(f"[placebo] {len(configs)} config × {len(shuffle_seeds)} shuffle × {len(pairs)} evaluation "

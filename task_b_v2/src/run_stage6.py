@@ -10,6 +10,8 @@ run_stage6.py — Stage 6 (HPO ของ track 1) · ทำก่อน LOCK (DE
     run       ส่วน B: ค้นหา 25 config → placebo ทุกรอบ → ยืนยันด้วย seed ใหม่ → รายงาน (ปฏิเสธถ้าไฟล์ที่ประกาศยังไม่ commit)
     report    สร้าง stage6_summary.md / stage6_decision.json / รูป ใหม่จากผลที่มีอยู่ (ไม่เทรน)
 
+B39: ทุกส่วนของ `run`/`dryrun` เปิด const_ic_zero (คำทำนายคงที่ → IC := 0) · รายงานจำนวน collapse ในข้อ 7 ของ stage6_summary.md
+
 *** สคริปต์นี้รายงานเท่านั้น ไม่แก้ draft_lock.py / LOCK.md ตามผลเอง (ผู้ใช้สั่ง) · ห้ามแตะช่วง final/replay (zone_end = VAL_END เสมอ) ***
 
 รัน:  python -m src.run_stage6 design
@@ -51,7 +53,7 @@ FOLD3_ROWS = {1: 1144, 2: 1410, 3: 1676}  # จำนวนแถว train (fit+
 BASE_CHECK_COLS = ["IC", "IC_spearman", "relMAE", "relMAE_baht", "StdRatio", "DirAcc", "MAE_baht",
                    "ic_s0", "ic_s1", "ic_s2", "relMAE_s0", "relMAE_s1", "relMAE_s2",
                    "c_chosen", "relMAE_shrunk", "IC_shrunk"]
-ANNOUNCED_FILES = ["src/hpo.py", "src/run_stage6.py", "src/runner.py", "src/placebo.py", "tests/test_stage6.py",
+ANNOUNCED_FILES = ["src/hpo.py", "src/run_stage6.py", "src/runner.py", "src/placebo.py", "src/evaluate.py", "tests/test_stage6.py",
                    "DECISIONS.md", "results/stage6_hpo/configs.csv", "results/stage6_hpo/design_log.json"]
 
 
@@ -356,13 +358,20 @@ def cmd_estimate(args):
 # ---------------------------------------------------------------
 # pipeline ส่วนที่ใช้ร่วมกันของ run และ dryrun
 # ---------------------------------------------------------------
-def check_base_matches_stage3(evals):
-    """A4: base ที่รันใหม่ต้องตรงกับ base ของ Stage 3 ทุกบิต (เทียบเฉพาะ evaluation ที่รัน) · ไม่ตรง → หยุด"""
-    ref = pd.read_csv(STAGE3_EVALS, float_precision="round_trip")
+def check_base_matches_stage3(evals, ref_path=None):
+    """
+    A4: base ที่รันใหม่ต้องตรงกับ base ของ Stage 3 ทุกบิต (เทียบเฉพาะ evaluation ที่รัน) · ไม่ตรง → หยุด
+    B39: NaN เทียบกับ NaN ถือว่าตรง (เช่น IC_shrunk เมื่อ c = 0 เป็น NaN ทั้งสองฝั่ง) · NaN เทียบกับค่า finite ถือว่าไม่ตรง (ต่าง = inf)
+    """
+    ref = pd.read_csv(ref_path or STAGE3_EVALS, float_precision="round_trip")
     ref = ref[ref["config"] == "base"].set_index(["ticker", "fold"])
     mine = evals[evals["config"] == "base"].set_index(["ticker", "fold"])
     ref = ref.loc[mine.index]
-    diffs = {c: float(np.max(np.abs(mine[c].to_numpy(dtype=float) - ref[c].to_numpy(dtype=float)))) for c in BASE_CHECK_COLS}
+    diffs = {}
+    for c in BASE_CHECK_COLS:
+        a, b = mine[c].to_numpy(dtype=float), ref[c].to_numpy(dtype=float)
+        d = np.where(np.isnan(a) & np.isnan(b), 0.0, np.abs(a - b))
+        diffs[c] = float(np.max(np.where(np.isnan(d), np.inf, d)))
     return bool(all(v == 0.0 for v in diffs.values())), diffs
 
 
@@ -390,7 +399,7 @@ def run_pipeline(configs, out, *, jobs, units=None, shuffles=hpo.PLACEBO_SHUFFLE
     timing = {}
 
     t0 = time.time()
-    evals, scores, _ = runner.run_configs(configs, out, seeds=SEARCH_SEEDS, jobs=jobs, units=units)
+    evals, scores, _ = runner.run_configs(configs, out, seeds=SEARCH_SEEDS, jobs=jobs, units=units, const_ic_zero=True)
     timing["search_wall_min"] = (time.time() - t0) / 60
     check_finite(evals, "ค้นหา")
     ok, diffs = check_base_matches_stage3(evals)
@@ -400,7 +409,8 @@ def run_pipeline(configs, out, *, jobs, units=None, shuffles=hpo.PLACEBO_SHUFFLE
     print(f"[stage6] base ตรงกับ Stage 3 ทุกบิต · ค้นหาเสร็จ {timing['search_wall_min']:.1f} นาที")
 
     t0 = time.time()
-    ev_p = placebo.run_placebo(configs, out / "placebo", shuffle_seeds=shuffles, seeds=SEARCH_SEEDS, jobs=jobs, units=units)
+    ev_p = placebo.run_placebo(configs, out / "placebo", shuffle_seeds=shuffles, seeds=SEARCH_SEEDS, jobs=jobs, units=units,
+                                const_ic_zero=True)
     timing["placebo_wall_min"] = (time.time() - t0) / 60
     check_finite(ev_p, "placebo")
     pstat = hpo.placebo_stats(ev_p, names)
@@ -411,7 +421,7 @@ def run_pipeline(configs, out, *, jobs, units=None, shuffles=hpo.PLACEBO_SHUFFLE
     top = str(scores[scores["config"] != "base"].sort_values("mean_IC", ascending=False).iloc[0]["config"])
     t0 = time.time()
     c_evals, c_scores, _ = runner.run_configs([BASE, next(c for c in cands if c.name == top)], out / "confirm",
-                                              seeds=hpo.CONFIRM_SEEDS, jobs=jobs, units=units)
+                                              seeds=hpo.CONFIRM_SEEDS, jobs=jobs, units=units, const_ic_zero=True)
     timing["confirm_wall_min"] = (time.time() - t0) / 60
     check_finite(c_evals, "ยืนยัน")
     judge = hpo.judge_winner(scores, evals, c_scores, c_evals, noise, pstat["t_hpo"], floor=floor)
@@ -489,6 +499,47 @@ def main_table(ctx):
     return pd.DataFrame(rows)
 
 
+def collapse_section(ctx):
+    """B39 ข้อ 3: จำนวน run ที่คำทำนายคงที่ (IC := 0) ต่อ config · ระดับ seed และระดับ evaluation · ค้นหาและ placebo + descriptive ของพารามิเตอร์"""
+    out, tb = ctx["out"], ctx["table"].set_index("name")
+    cs, cp, cc = hpo.collapse_counts(ctx["evals"]), hpo.collapse_counts(ctx["ev_p"]), hpo.collapse_counts(ctx["c_evals"])
+    names = list(ctx["table"]["name"])
+    tot = (cs["seed_runs"] + cp["seed_runs"]).loc[names]
+    order = list(tot.sort_values(ascending=False, kind="stable").index)
+    s_tot, p_tot = int(cs["seed_runs_total"].iloc[0]), int(cp["seed_runs_total"].iloc[0])
+    se_tot, pe_tot = int(cs["evals_total"].iloc[0]), int(cp["evals_total"].iloc[0])
+    cols = ["lr", "batch", "dropout", "weight_decay", "filters", "ann_hidden", "nperseg", "hop", "noise_std"]
+    rows, csv_rows = [], []
+    for n in order:
+        rows.append({"config": n, f"ค้นหา: seed-run (จาก {s_tot})": int(cs.loc[n, "seed_runs"]), f"ค้นหา: evaluation (จาก {se_tot})": int(cs.loc[n, "evals"]),
+                     f"placebo: seed-run (จาก {p_tot})": int(cp.loc[n, "seed_runs"]), f"placebo: evaluation (จาก {pe_tot})": int(cp.loc[n, "evals"]),
+                     **{c: tb.loc[n, c] for c in cols}})
+        csv_rows.append({"config": n, "search_seed_runs": int(cs.loc[n, "seed_runs"]), "search_seed_runs_total": s_tot,
+                         "search_evals": int(cs.loc[n, "evals"]), "search_evals_total": se_tot,
+                         "placebo_seed_runs": int(cp.loc[n, "seed_runs"]), "placebo_seed_runs_total": p_tot,
+                         "placebo_evals": int(cp.loc[n, "evals"]), "placebo_evals_total": pe_tot})
+    pd.DataFrame(csv_rows).to_csv(out / "collapse_by_config.csv", index=False)
+    md = ["## 7. Collapse — คำทำนายคงที่ (IC := 0 ตาม B39)", "",
+          "กติกา: std(ŷ)/std(y) < 1e-8 หรือ ptp(ŷ) = 0 → IC Pearson = IC Spearman := 0 · ใช้เหมือนกันทุกส่วน (ค้นหา · placebo · ยืนยัน) · "
+          "seed-run = หนึ่ง unit × หนึ่ง seed เดี่ยว · evaluation = คำทำนายเฉลี่ย 3 seed ของหนึ่ง unit ", "",
+          f"- ค้นหา: **{int(cs['seed_runs'].sum())}/{int(cs['seed_runs_total'].sum())}** seed-run · **{int(cs['evals'].sum())}/{int(cs['evals_total'].sum())}** evaluation",
+          f"- placebo ({len(ctx['shuffles'])} รอบ): **{int(cp['seed_runs'].sum())}/{int(cp['seed_runs_total'].sum())}** seed-run · **{int(cp['evals'].sum())}/{int(cp['evals_total'].sum())}** evaluation",
+          f"- ยืนยัน (seeds 10–12): {int(cc['seed_runs'].sum())}/{int(cc['seed_runs_total'].sum())} seed-run · {int(cc['evals'].sum())}/{int(cc['evals_total'].sum())} evaluation", "",
+          "### 7.1 ต่อ config (เรียงตาม collapse รวมค้นหา + placebo)", "", md_table(pd.DataFrame(rows)), ""]
+    if len(names) == hpo.N_CANDIDATES + 1:
+        lv_s = hpo.level_means(ctx["table"], cs["seed_runs"].astype(float))
+        lv_p = hpo.level_means(ctx["table"], cp["seed_runs"].astype(float))
+        lv = lv_s[["param", "level", "n_config"]].copy()
+        lv[f"ค้นหา: seed-run เฉลี่ยต่อ config (จาก {s_tot})"] = [f"{v:.2f}" for v in lv_s["mean_IC"]]
+        lv[f"placebo: seed-run เฉลี่ยต่อ config (จาก {p_tot})"] = [f"{v:.2f}" for v in lv_p["mean_IC"]]
+        common, top = hpo.common_levels(ctx["table"], tot)
+        md += ["### 7.2 (descriptive) collapse เฉลี่ยตามระดับของแต่ละพารามิเตอร์ (เฉพาะ 24 ผู้สมัคร)", "", md_table(lv), "",
+               f"### 7.3 (descriptive) ระดับที่ซ้ำกันใน config ที่ collapse บ่อยที่สุด {len(top)} ตัว ({', '.join(top) if top else 'ไม่มี'})", "",
+               md_table(common), "",
+               "เป็นภาพรวมเท่านั้น: 24 config สุ่มค่าหลายพารามิเตอร์พร้อมกัน จึงแยกผลของแต่ละพารามิเตอร์ออกจากกันไม่ได้ · ห้ามใช้เปลี่ยน config", ""]
+    return md, {"search": cs, "placebo": cp, "confirm": cc}
+
+
 def write_report(ctx):
     out, j, ps = ctx["out"], ctx["judge"], ctx["pstat"]
     sc = ctx["scores"].set_index("config")
@@ -512,7 +563,7 @@ def write_report(ctx):
         return "**ผ่าน**" if v else "ไม่ผ่าน"
     vrow = [
         {"ข้อ": "(1) ΔIC เทียบ base > max(noise, 0.0597, T_hpo)", "ค่า": f"ΔIC {j['delta_ic']:+.4f} vs {j['thr1']:.4f}", "ผล": mark(j["c1"])},
-        {"ข้อ": "(2) ยืนยัน seeds 10–12: ΔIC > เกณฑ์ข้อ (1)", "ค่า": f"ΔIC {j['delta_ic_confirm']:+.4f} vs {j['thr1']:.4f}", "ผล": mark(j["c2"])},
+        {"ข้อ": "(2) **[บังคับ]** ยืนยัน seeds 10–12: ΔIC > เกณฑ์ข้อ (1)", "ค่า": f"ΔIC {j['delta_ic_confirm']:+.4f} vs {j['thr1']:.4f}", "ผล": mark(j["c2"])},
         {"ข้อ": f"(3) IC>0 ≥ {j['min_positive_needed']}/{j['n_eval']} evaluation · ตัด evaluation ที่ ΔIC สูงสุด ({j['max_delta_eval']}) แล้ว ΔIC เฉลี่ย > max(noise, 0.0597)",
          "ค่า": f"IC>0 {j['n_ic_positive']}/{j['n_eval']} · ΔIC เฉลี่ยที่เหลือ {j['delta_mean_trimmed']:+.4f} vs {j['thr3']:.4f}", "ผล": mark(j["c3"])},
         {"ข้อ": "(4) relMAE (return · ก่อนปรับขนาด) ไม่สูงกว่า base", "ค่า": f"{j['relMAE_top']:.4f} vs base {j['relMAE_base']:.4f}", "ผล": mark(j["c4"])}]
@@ -542,7 +593,8 @@ def write_report(ctx):
           f"- ผู้สมัครอันดับ 1 (mean IC สูงสุดใน 24 ผู้สมัคร): **{j['top']}** · mean IC {fmt(float(sc.loc[j['top'], 'mean_IC']), 's4')} · base {fmt(base_ic, 's4')}"
           + (" · **base อยู่อันดับ 1 เมื่อรวมทุก config**" if j["base_is_overall_top"] else ""),
           f"- เกณฑ์สุดท้ายของข้อ (1) = max(noise ของ seed {j['noise']:.4f}, B22 {j['floor']:.4f}, T_hpo {j['t_hpo']:+.4f}) = **{j['thr1']:.4f}**",
-          f"- อัตราผลบวกปลอมของเกณฑ์ T_hpo (max ของ {n_rounds} รอบ) {fp_rate}", ""]
+          f"- อัตราผลบวกปลอมของเกณฑ์ T_hpo (max ของ {n_rounds} รอบ) {fp_rate}",
+          "- กติกา B39: คำทำนายคงที่ (std(ŷ)/std(y) < 1e-8 หรือ ptp(ŷ) = 0) → IC := 0 ทั้งระดับ seed และ evaluation ในทุกส่วน (รายละเอียดข้อ 7) · เกณฑ์ A6 (2) เป็นเกณฑ์บังคับ", ""]
     md += ["## 1. ตาราง config ทั้งหมด (เรียงตาม mean IC)", "", md_table(main_table(ctx)), "",
            "σ seed = std ข้าม seed ของ IC เฉลี่ย 6 evaluation (B17) · ชนเพดาน epoch = จำนวน run (หนึ่ง unit × หนึ่ง seed) ที่หยุดเพราะครบ 200 epoch ไม่ใช่ early stopping · "
            "หลังปรับ c = หลังปรับขนาดคำทำนายด้วย c ที่เลือกจากส่วน early-stop (B18 · รายงานเพิ่ม ไม่ใช้เลือก)", "",
@@ -562,11 +614,15 @@ def write_report(ctx):
            f"- เวลา (wall · jobs ตามที่รัน · ของครั้งนี้): ค้นหา {t['search_wall_min']:.1f} นาที · placebo {t['placebo_wall_min']:.1f} นาที · ยืนยัน {t['confirm_wall_min']:.1f} นาที",
            f"- ผลรวมเวลา train ของทุก unit (วินาที · จากคอลัมน์ seconds): ค้นหา {sec['ค้นหา'] / 60:.0f} นาที · placebo {sec['placebo'] / 60:.0f} นาที · ยืนยัน {sec['ยืนยัน'] / 60:.0f} นาที", "",
            "## 6. รูป", "", f"![IC ของ 25 config เทียบ placebo]({'stage6_ic_vs_placebo.png'})", ""]
+    col_md, col_counts = collapse_section(ctx)
+    md += col_md
     (out / "stage6_summary.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     decision = {"generated_at": stamp(), "smoke": bool(ctx["smoke"]), "has_winner": j["has_winner"], "judge": j,
                 "placebo": {"shuffles": list(ctx["shuffles"]), "t_s": {str(k): float(v) for k, v in ps["t_s"].items()}, "t_hpo": ps["t_hpo"],
                             "false_positive_rate_note": fp_rate},
-                "noise": ctx["noise"], "n_configs_logged": n_log, "timing": t}
+                "noise": ctx["noise"], "n_configs_logged": n_log, "timing": t, "const_ic_zero": True,
+                "collapse": {k: {"seed_runs": int(v["seed_runs"].sum()), "seed_runs_total": int(v["seed_runs_total"].sum()),
+                                 "evals": int(v["evals"].sum()), "evals_total": int(v["evals_total"].sum())} for k, v in col_counts.items()}}
     (out / "stage6_decision.json").write_text(json.dumps(decision, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     plot_ic_vs_placebo(out / "stage6_ic_vs_placebo.png", sc["mean_IC"], pic, "base", j["thr1"])
     pd.set_option("display.width", 250)

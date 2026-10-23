@@ -41,15 +41,16 @@ def unit_key(cfg, ticker, fold_k, seeds, zone_end, tag=""):
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def run_unit(cfg, ticker, fold_k, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, cache_dir=None, tag=""):
+def run_unit(cfg, ticker, fold_k, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, cache_dir=None, tag="", const_ic_zero=False):
     """
     เทรนและประเมินหนึ่ง (config, หุ้น, fold) · คืน (แถว metric, DataFrame คำทำนายรายวัน, history ของทุก seed)
     history = list ของ dict {train_loss, val_loss, epochs (epoch ที่หยุด), best_epoch, best_val} ต่อ seed — ไว้วาด loss curve
     ถ้ามี cache ของ unit นี้อยู่แล้วจะอ่านจาก cache (ผลเหมือนกันทุกบิตเพราะ seed ตายตัว)
+    const_ic_zero : เฉพาะ Stage 6 (B39) — คำทำนายคงที่ → IC := 0 ทั้งระดับ evaluation และระดับ seed · ไม่แตะ IC_shrunk · คีย์ cache แยกจากแบบปิด
     """
     # ที่นี่ไม่เรียก assert_output_dir เพราะ `run_configs` ตรวจโฟลเดอร์ปลายทางให้แล้วตั้งแต่ต้น
     # (และ worker เป็นคนละ process จึงเห็นค่า paths.RESULTS_DIR ของจริงเสมอ ทำให้ test ที่ใช้ tmp_path พัง)
-    key = unit_key(cfg, ticker, fold_k, seeds, zone_end, tag)
+    key = unit_key(cfg, ticker, fold_k, seeds, zone_end, tag + ("|const_ic0" if const_ic_zero else ""))
     cache = None if cache_dir is None else cache_dir / f"{key}.pkl"
     if cache is not None and cache.exists():
         with open(cache, "rb") as f:
@@ -69,7 +70,7 @@ def run_unit(cfg, ticker, fold_k, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, cache
             cfg, prepared, seeds=seeds, extra=extra, return_hist=True, return_seed_preds=True, return_val_pred=True)
 
     row = evaluate.evaluation_row("CNN-ANN", cfg.name, ticker, fold_k,
-                                  prepared["y_eval"], pred, prepared["prev_close_eval"],
+                                  prepared["y_eval"], pred, prepared["prev_close_eval"], const_ic_zero=const_ic_zero,
                                   seconds=round(time.time() - t0, 1), n_seeds=len(seeds),
                                   image_scale=prepared["transform"].scale,
                                   n_train_fit=len(prepared["pos_fit"]), n_train_val=len(prepared["pos_val"]),
@@ -77,9 +78,11 @@ def run_unit(cfg, ticker, fold_k, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, cache
                                   best_epoch_mean=float(np.mean([h["best_epoch"] for h in hists])))
     # IC / relMAE ของแต่ละ seed เดี่ยว ๆ — ไว้ประมาณ noise ของ seed (DECISIONS B17)
     for k, sp in zip(seeds, seed_preds):
-        m = evaluate.metrics(prepared["y_eval"], sp, prepared["prev_close_eval"])
+        m = evaluate.metrics(prepared["y_eval"], sp, prepared["prev_close_eval"], const_ic_zero=const_ic_zero)
         row[f"ic_s{k}"] = m["IC"]
         row[f"relMAE_s{k}"] = m["relMAE"]
+        if const_ic_zero:
+            row[f"collapsed_s{k}"] = m["collapsed"]
     # shrinkage (B18): เลือก c จากส่วน early-stop เพื่อลด MAE · รายงานเพิ่ม ไม่ใช้เลือก config (IC ไม่เปลี่ยนเมื่อคูณ c > 0)
     c = shrink.choose_c(y_val, val_pred)
     pred_shrunk = shrink.apply(pred, c)
@@ -100,17 +103,20 @@ def run_unit(cfg, ticker, fold_k, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, cache
 
 def _worker(args):
     """ตัวห่อสำหรับ ProcessPoolExecutor (ต้องเป็นฟังก์ชันระดับบนสุดเพื่อให้ pickle ได้)"""
-    cfg, ticker, fold_k, seeds, zone_end, cache_dir, tag = args
-    return run_unit(cfg, ticker, fold_k, seeds=seeds, zone_end=zone_end, cache_dir=cache_dir, tag=tag)
+    cfg, ticker, fold_k, seeds, zone_end, cache_dir, tag, *rest = args
+    return run_unit(cfg, ticker, fold_k, seeds=seeds, zone_end=zone_end, cache_dir=cache_dir, tag=tag,
+                    const_ic_zero=bool(rest[0]) if rest else False)
 
 
-def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, jobs=1, tag="", verbose=True, units=None):
+def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, jobs=1, tag="", verbose=True, units=None,
+                const_ic_zero=False):
     """
     รันทุก config × ทุกหุ้น × ทุก fold · เขียนผลลง `stage_dir` แล้วคืน (evals, scores, predictions)
 
     jobs > 1 : แบ่ง unit ไปรันคนละ process (แต่ละ process ตั้ง thread = 1 เหมือนเดิม) — ผลเท่ากับรันทีละตัว
     units    : (ไม่บังคับ) list ของ (ticker, fold) ที่จะรัน · None = ครบทุกหุ้น × ทุก fold (ใช้จริงทุก Stage)
                ระบุเฉพาะตอน dry-run ตรวจสายงานของ Stage 6 (B38) — คะแนนรวมจะคิดจากจำนวน evaluation ที่รันจริง
+    const_ic_zero : เปิดเฉพาะ Stage 6 (B39) · ค่าเริ่มต้นปิด = ทุก Stage ก่อนหน้าเหมือนเดิม
     """
     stage = paths.assert_output_dir(stage_dir)
     stage.mkdir(parents=True, exist_ok=True)
@@ -118,7 +124,7 @@ def run_configs(configs, stage_dir, *, seeds=SEARCH_SEEDS, zone_end=VAL_END, job
 
     folds_k = list(range(1, len(data.make_folds(data.build_dataset(TICKERS[0], zone_end).dates)) + 1))
     pairs = [(t, k) for t in TICKERS for k in folds_k] if units is None else list(units)
-    tasks = [(cfg, t, k, tuple(seeds), zone_end, cache_dir, tag) for cfg in configs for t, k in pairs]
+    tasks = [(cfg, t, k, tuple(seeds), zone_end, cache_dir, tag, const_ic_zero) for cfg in configs for t, k in pairs]
     if verbose:
         print(f"[runner] {len(configs)} config × {len(pairs)} evaluation "
               f"= {len(tasks)} unit · seeds {tuple(seeds)} · jobs {jobs}")
