@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-10-24 01:31",
+  "smoke": false,
+  "has_winner": false,
+  "judge": {
+    "top": "hpo06",
+    "base_is_overall_top": false,
+    "thr1": 0.07695874835623269,
+    "thr3": 0.0597,
+    "noise": 0.01853206879454195,
+    "floor": 0.0597,
+    "t_hpo": 0.07695874835623269,
+    "delta_ic": 0.07034316080389973,
+    "c1": false,
+    "delta_ic_confirm": -0.04619100043037319,
+    "c2": false,
+    "n_eval": 6,
+    "n_ic_positive": 6,
+    "min_positive_needed": 5,
+    "delta_by_eval": {
+      "ADVANC-1": 0.13584726889714904,
+      "ADVANC-2": 0.17652878512508408,
+      "ADVANC-3": 0.007804079531809005,
+      "KBANK-1": 0.01991184546597106,
+      "KBANK-2": 0.018428870239653693,
+      "KBANK-3": 0.06353811556373151
+    },
+    "max_delta_eval": "ADVANC-2",
+    "delta_mean_trimmed": 0.04910603593966286,
+    "c3": false,
+    "relMAE_top": 1.0083717714665448,
+    "relMAE_base": 1.0119780234579099,
+    "c4": true,
+    "confirm_descriptive": {
+      "n_eval": 6,
+      "n_ic_positive": 3,
+      "min_positive_needed": 5,
+      "delta_by_eval": {
+        "ADVANC-1": -0.03524079948690746,
+        "ADVANC-2": -0.01784111366288066,
+        "ADVANC-3": 0.007202693719569872,
+        "KBANK-1": -0.04644729231771863,
+        "KBANK-2": -0.2233574794016464,
+        "KBANK-3": 0.03853798856734412
+      },
+      "max_delta_eval": "KBANK-3",
+      "delta_mean_trimmed": -0.06313679822991666,
+      "c3": false
+    },
+    "has_winner": false
+  },
+  "placebo": {
+    "shuffles": [
+      100,
+      101,
+      102,
+      103,
+      104
+    ],
+    "t_s": {
+      "100": 0.07695874835623269,
+      "101": 0.04783761911022932,
+      "102": 0.05362655676367311,
+      "103": 0.04030924669629558,
+      "104": 0.04776803977444283
+    },
+    "t_hpo": 0.07695874835623269,
+    "false_positive_rate_note": "≈ 1/6"
+  },
+  "noise": 0.01853206879454195,
+  "n_configs_logged": 45,
+  "timing": {
+    "search_wall_min": 34.888347673416135,
+    "placebo_wall_min": 203.30953299601873,
+    "confirm_wall_min": 1.9238033652305604
+  },
+  "const_ic_zero": true,
+  "collapse": {
+    "search": {
+      "seed_runs": 41,
+      "seed_runs_total": 450,
+      "evals": 3,
+      "evals_total": 150
+    },
+    "placebo": {
+      "seed_runs": 185,
+      "seed_runs_total": 2250,
+      "evals": 7,
+      "evals_total": 750
+    },
+    "confirm": {
+      "seed_runs": 0,
+      "seed_runs_total": 36,
+      "evals": 0,
+      "evals_total": 12
+    }
+  }
+}

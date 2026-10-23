@@ -1,0 +1,22 @@
+{
+  "matches_stage3_bitwise": true,
+  "max_abs_diff": {
+    "IC": 0.0,
+    "IC_spearman": 0.0,
+    "relMAE": 0.0,
+    "relMAE_baht": 0.0,
+    "StdRatio": 0.0,
+    "DirAcc": 0.0,
+    "MAE_baht": 0.0,
+    "ic_s0": 0.0,
+    "ic_s1": 0.0,
+    "ic_s2": 0.0,
+    "relMAE_s0": 0.0,
+    "relMAE_s1": 0.0,
+    "relMAE_s2": 0.0,
+    "c_chosen": 0.0,
+    "relMAE_shrunk": 0.0,
+    "IC_shrunk": 0.0
+  },
+  "units": null
+}
