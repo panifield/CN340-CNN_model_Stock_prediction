@@ -1,0 +1,21 @@
+{
+  "measured_on": "dev (KBANK · train ถึงก่อน fold 3 · ทาย fold 3 · 1 seed)",
+  "dev_train_rows": 1805,
+  "seconds_1seed": {
+    "track1": 10.821120023727417,
+    "track2": 11.660741806030273,
+    "track3": 26.598121643066406,
+    "track4": 4.362347364425659,
+    "control": 0.9541182518005371
+  },
+  "legacy_seconds": 7.2335076332092285,
+  "train_rows_assumed": {
+    "final": 2071,
+    "replay": 2453,
+    "s1": 1007
+  },
+  "c6_serial_minutes": 48.19709263429086,
+  "c6_wall_minutes_jobs6": 10.477628833541493,
+  "largest_single_unit_minutes": 6.024486831989095,
+  "mode1600_wall_minutes_jobs6": "15–25 (HANDOFF_1600 · วัดด้วย y สลับ)"
+}
