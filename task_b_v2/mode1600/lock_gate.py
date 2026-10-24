@@ -25,6 +25,12 @@ TASK_DIR = MODE_DIR.parent
 LOCK_NAME = "LOCK_1600.md"
 PENDING_MARKER = "TRACK1_PENDING"
 NEXTDAY_PENDING_MARKER = "NEXTDAY_LOCK_PENDING"
+# marker ของร่าง = comment บรรทัดตรงตัวเท่านั้น (รูปแบบที่ draft_lock1600 เขียนจริง) — ไม่ใช่คำเปล่าที่ไหนก็ได้ในไฟล์ (DECISIONS B42:
+# แถว M23 ในหัวข้อ 5 มีคำ NEXTDAY_LOCK_PENDING อยู่ในคำอธิบาย ทำให้ LOCK ที่ไม่ใช่ร่างถูกปฏิเสธผิด ๆ)
+def has_marker(text, marker):
+    return f"<!-- {marker} -->" in text
+
+
 NEXTDAY_HASH_RE = re.compile(r"NEXTDAY_LOCK_COMMIT:\s*([0-9a-f]{40})")
 
 
@@ -90,9 +96,9 @@ def check(mode_dir=MODE_DIR, lock_name=LOCK_NAME, clean_dirs=None, nextday_lock=
         lock_commits = _git(root, "log", "--format=%H", "--", lock_rel)[1].split()
         if len(lock_commits) > 1:
             problems.append(f"{lock_rel} ถูกแก้ใน commit หลัง commit แรก ({len(lock_commits)} commit แตะไฟล์นี้) — ต้องเป็นรอบใหม่ที่ประกาศชัด")
-        if PENDING_MARKER in text:
+        if has_marker(text, PENDING_MARKER):
             problems.append(f"{lock_rel} ยังเป็นร่าง (ช่อง track 1 ว่าง)")
-        if NEXTDAY_PENDING_MARKER in text:
+        if has_marker(text, NEXTDAY_PENDING_MARKER):
             problems.append(f"{lock_rel} ยังเป็นร่าง (ยังไม่มี commit hash ของ LOCK.md ของ next_day — สร้างใหม่หลัง commit 2)")
 
     # (+) LOCK.md ของ next_day ต้อง commit แล้วและตรงกับที่ LOCK_1600 อ้าง

@@ -118,6 +118,25 @@ def test_refuses_draft_lock1600(repo, marker):
         repo.check()
 
 
+def test_marker_words_in_prose_do_not_make_a_draft(repo):
+    """บั๊ก B42: LOCK ที่ไม่ใช่ร่างแต่มีคำ marker ในคำอธิบาย (เช่น แถว M23) ต้องผ่าน · marker แบบ comment ต้องถูกปฏิเสธ"""
+    _commit_all(repo.root)
+    prose = (f"| M23 | ... | ถ้ายังไม่ commit → ใส่ marker `{G.NEXTDAY_PENDING_MARKER}` (gate ปฏิเสธ) · "
+             f"ช่อง {G.PENDING_MARKER} ว่าง → ร่าง |")
+    repo.write_lock1600(prose)
+    _commit_all(repo.root, "lock with prose")
+    assert repo.check()["lock_commit"]
+
+
+def test_real_committed_lock1600_is_not_judged_a_draft():
+    """LOCK_1600.md ตัวจริง (เนื้อหาที่ commit ใน c21d264 มีแถว M23): ต้องไม่ถูกตัดสินว่าเป็นร่าง · ไม่ commit → ข้าม"""
+    text = (G.MODE_DIR / G.LOCK_NAME).read_text(encoding="utf-8")
+    if G.NEXTDAY_PENDING_MARKER not in text:
+        pytest.skip("LOCK_1600.md ไม่มีคำ marker ในคำอธิบาย (ไม่ใช่กรณีของบั๊ก)")
+    assert not G.has_marker(text, G.PENDING_MARKER) and not G.has_marker(text, G.NEXTDAY_PENDING_MARKER)
+    assert G.NEXTDAY_HASH_RE.search(text)
+
+
 def test_refuses_when_nextday_lock_not_committed(tmp_path):
     r = Repo(tmp_path / "r2")
     (r.tb / "LOCK.md").unlink()
