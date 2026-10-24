@@ -1,0 +1,5 @@
+run_head_commit,run_time,ticker,block,tag,n_fit,n_val,train_first,train_last,eval_first,eval_last,n_eval,c_t1600_cnn_ann,epochs_t1600_cnn_ann,best_epoch_t1600_cnn_ann,c_t1600_ann_only,epochs_t1600_ann_only,best_epoch_t1600_ann_only
+66f0f120d072facd633efe72aac144f0cbd7e093,2026-10-24T13:31:07+07:00,KBANK,0,replay_i,595,105,2023-11-01,2026-09-25,2026-09-28,2026-10-22,17,0.0,33.2,8.2,0.0,97.8,72.8
+66f0f120d072facd633efe72aac144f0cbd7e093,2026-10-24T13:31:07+07:00,KBANK,0,replay_ii,595,105,2023-11-01,2026-09-25,2026-09-30,2026-10-22,10,0.0,33.2,8.2,0.0,97.8,72.8
+66f0f120d072facd633efe72aac144f0cbd7e093,2026-10-24T13:31:07+07:00,ADVANC,0,replay_i,594,105,2023-11-01,2026-09-25,2026-09-28,2026-10-22,17,0.0,33.8,8.8,0.0,36.0,11.0
+66f0f120d072facd633efe72aac144f0cbd7e093,2026-10-24T13:31:07+07:00,ADVANC,0,replay_ii,594,105,2023-11-01,2026-09-25,2026-09-30,2026-10-22,10,0.0,33.8,8.8,0.0,36.0,11.0
