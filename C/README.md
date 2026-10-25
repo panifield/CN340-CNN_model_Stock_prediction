@@ -27,7 +27,10 @@ C/
     ├── results/training_history.json
     ├── results/test_summary.json
     ├── results/test_predictions.csv
-    └── figures/
+    ├── figures/
+    └── graphs/
+        ├── validation_accuracy_by_epoch.png
+        └── validation_roc_curve.png
 ```
 
 ## วิธีรัน

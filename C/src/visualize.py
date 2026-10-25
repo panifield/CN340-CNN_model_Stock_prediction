@@ -5,7 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay, auc, roc_curve
 
 from .config import CHANNEL_LABELS, CHANNELS
 
@@ -31,6 +31,43 @@ def plot_confusion_matrix(matrix: list, stock: str, path: Path) -> None:
     ax.set_title(f"{stock}: test confusion matrix")
     fig.tight_layout()
     fig.savefig(path, dpi=160)
+    plt.close(fig)
+
+
+def plot_validation_accuracy(history: dict, stock: str, path: Path) -> None:
+    """กราฟ accuracy ของ validation ในแต่ละ epoch สำหรับใช้เปรียบเทียบการจูน."""
+    epochs = np.arange(1, len(history["valid_acc"]) + 1)
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(epochs, history["valid_acc"], marker="o", markersize=4, color="#2455F5", linewidth=1.6)
+    ax.axhline(0.5, color="gray", linestyle="--", linewidth=1, label="Random baseline (50%)")
+    ax.set(title=f"{stock}: CNN Validation Accuracy", xlabel="Epoch", ylabel="Accuracy", ylim=(0, 1))
+    ax.set_xticks(epochs)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def plot_roc_curve(y_true: np.ndarray, probabilities: np.ndarray, stock: str, path: Path,
+                   split_name: str = "Validation") -> None:
+    """ROC curve ของผลทำนายจริง; บันทึกภาพแจ้งเหตุผลหาก split มีคลาสเดียว."""
+    fig, ax = plt.subplots(figsize=(6, 5))
+    if len(np.unique(y_true)) < 2:
+        ax.text(0.5, 0.5, "ROC curve unavailable\n(only one class in this split)",
+                ha="center", va="center", transform=ax.transAxes)
+    else:
+        false_positive_rate, true_positive_rate, _ = roc_curve(y_true, probabilities)
+        score = auc(false_positive_rate, true_positive_rate)
+        ax.plot(false_positive_rate, true_positive_rate, color="#2455F5", linewidth=2.2,
+                label=f"CNN (AUC = {score:.3f})")
+        ax.plot([0, 1], [0, 1], "--", color="gray", linewidth=1.2, label="Random baseline")
+        ax.legend(loc="lower right")
+    ax.set(title=f"{stock}: {split_name} ROC Curve", xlabel="False Positive Rate", ylabel="True Positive Rate",
+           xlim=(0, 1), ylim=(0, 1))
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(path, dpi=180)
     plt.close(fig)
 
 

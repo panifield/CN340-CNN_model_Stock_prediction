@@ -11,7 +11,8 @@ from .config import CHANNELS, EPOCHS, OUT_DIR, SPLIT, WINDOW
 from .data import build_dataset, load_stock, split_and_normalize
 from .model import SpectroCNNANN
 from .train import DEVICE, evaluate, predict_proba, train_one
-from .visualize import plot_confusion_matrix, plot_training_curves, save_sample_spectrograms
+from .visualize import (plot_confusion_matrix, plot_roc_curve, plot_training_curves,
+                        plot_validation_accuracy, save_sample_spectrograms)
 
 
 def _date_ranges(parts: dict) -> dict:
@@ -81,6 +82,9 @@ def _validation_report(summary: dict) -> str:
 |---:|---:|---:|---:|---:|
 | {metrics['accuracy']:.3f} | {metrics['precision']:.3f} | {metrics['recall']:.3f} | {metrics['f1']:.3f} | {_format_auc(metrics['roc_auc'])} |
 
+Baseline แบบทายคลาสที่พบมากที่สุดใน Train ตลอด: **{summary['validation_majority_class_baseline_accuracy']:.3f}**
+(ทาย `{summary['majority_class_name']}` ทุกวัน)
+
 Confusion matrix (แถว = จริง `[DOWN, UP]`, คอลัมน์ = ทำนาย `[DOWN, UP]`):
 
 ```text
@@ -94,18 +98,19 @@ Confusion matrix (แถว = จริง `[DOWN, UP]`, คอลัมน์ =
 def _prepare(stock: str, years: int):
     """เตรียม split เดิมแบบ deterministic เพื่อใช้ได้ทั้ง tune และ test."""
     output = OUT_DIR / stock
-    model_dir, result_dir, figure_dir = output / "model", output / "results", output / "figures"
-    for directory in (model_dir, result_dir, figure_dir):
+    model_dir, result_dir, figure_dir, graph_dir = (output / "model", output / "results",
+                                                    output / "figures", output / "graphs")
+    for directory in (model_dir, result_dir, figure_dir, graph_dir):
         directory.mkdir(parents=True, exist_ok=True)
     df = load_stock(stock, years)
     X, y, dates = build_dataset(df)
     parts, slices, mean, std = split_and_normalize(X, y, dates, SPLIT)
-    return df, X, y, dates, parts, mean, std, model_dir, result_dir, figure_dir
+    return df, X, y, dates, parts, mean, std, model_dir, result_dir, figure_dir, graph_dir
 
 
 def run_train_valid(stock: str, years: int = 3, epochs: int = EPOCHS) -> dict:
     """เทรนด้วย train และเลือก checkpoint ด้วย validation เท่านั้น; ไม่ประเมิน test."""
-    df, X, y, dates, parts, mean, std, model_dir, result_dir, figure_dir = _prepare(stock, years)
+    df, X, y, dates, parts, mean, std, model_dir, result_dir, figure_dir, graph_dir = _prepare(stock, years)
     Xtr, ytr, _ = parts["train"]
     Xva, yva, _ = parts["valid"]
 
@@ -115,6 +120,8 @@ def run_train_valid(stock: str, years: int = 3, epochs: int = EPOCHS) -> dict:
     model, history = train_one(Xtr, ytr, Xva, yva, epochs=epochs)
     valid_probabilities = predict_proba(model, Xva)
     valid_metrics, valid_predictions = evaluate(yva, valid_probabilities)
+    majority_class = int(ytr.mean() >= 0.5)
+    baseline_accuracy = float((yva == majority_class).mean())
 
     summary = {
         "stock": stock,
@@ -129,8 +136,11 @@ def run_train_valid(stock: str, years: int = 3, epochs: int = EPOCHS) -> dict:
         "window": WINDOW, "channels": CHANNELS, "spectrogram_shape": list(X.shape[1:]),
         "epochs_ran": len(history["train_loss"]),
         "validation_metrics": valid_metrics,
+        "majority_class_name": "UP" if majority_class else "DOWN",
+        "validation_majority_class_baseline_accuracy": baseline_accuracy,
     }
-    print(f"  validation accuracy={valid_metrics['accuracy']:.3f} | test ยังไม่ถูกประเมิน")
+    print(f"  validation accuracy={valid_metrics['accuracy']:.3f} | "
+          f"majority baseline={baseline_accuracy:.3f} | test ยังไม่ถูกประเมิน")
 
     torch.save({"state_dict": model.state_dict(), "mean": mean, "std": std,
                 "window": WINDOW, "channels": CHANNELS, "years": years}, model_dir / "model.pt")
@@ -152,12 +162,14 @@ def run_train_valid(stock: str, years: int = 3, epochs: int = EPOCHS) -> dict:
     validation_end = np.where(dates == validation_dates[-1])[0][0] + 1
     save_sample_spectrograms(stock, X[:validation_end], y[:validation_end], dates[:validation_end],
                              figure_dir / "train_validation_spectrogram_examples.png")
+    plot_validation_accuracy(history, stock, graph_dir / "validation_accuracy_by_epoch.png")
+    plot_roc_curve(yva, valid_probabilities, stock, graph_dir / "validation_roc_curve.png")
     return summary
 
 
 def run_test(stock: str, years: int = 3) -> dict:
     """โหลด checkpoint ที่จูนแล้วและประเมิน test เพียงครั้งเดียว."""
-    df, X, y, dates, parts, _, _, model_dir, result_dir, figure_dir = _prepare(stock, years)
+    df, X, y, dates, parts, _, _, model_dir, result_dir, figure_dir, graph_dir = _prepare(stock, years)
     checkpoint_path = model_dir / "model.pt"
     if not checkpoint_path.exists():
         raise FileNotFoundError("ไม่พบ checkpoint; รัน --mode train-valid และจูนโมเดลก่อน")
@@ -188,6 +200,7 @@ def run_test(stock: str, years: int = 3) -> dict:
                       result_dir / "test_predictions.csv", index=False)
     plot_confusion_matrix(metrics["confusion_matrix[[down,up] true x predicted]"], stock,
                           figure_dir / "test_confusion_matrix.png")
+    plot_roc_curve(yte, probabilities, stock, graph_dir / "test_roc_curve.png", split_name="Test")
     print(f"  test accuracy={metrics['accuracy']:.3f} | majority baseline={summary['test_majority_class_baseline_accuracy']:.3f}")
     return summary
 
